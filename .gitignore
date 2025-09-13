@@ -1,0 +1,5 @@
+/config/*.php
+/admin/uploads/
+/storage/
+/vendor/
+/node_modules/
