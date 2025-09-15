@@ -5,7 +5,7 @@ Tecnologías: **HTML, CSS, JavaScript, PHP, MariaDB/MySQL**.
 
 ---
 
-## 📂 Estructura de carpetas
+---------------INFORMACION SOBRE SHOPPING-------------------------------
 
 ### `/public/`
 Parte pública (lo que ve el cliente).
@@ -349,4 +349,107 @@ Archivos internos (no públicos).
 4. Desarrollar el panel admin (CRUD).
 5. Mejorar estilos y experiencia de usuario.
 
----
+
+
+
+
+-----------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------
+
+
+
+
+
+ESTRUCTURA DE CARPETAS Y DESARROLLO.
+
+shopping/
+├── .gitignore                 # Ignorar archivos innecesarios en Git
+│
+├── api/                       # Endpoints de la API (responden en JSON)
+│   ├── health.php             # Verifica estado (ok/db conectado)
+│   ├── products.php           # API de productos
+│   └── orders.php             # (pendiente) API para registrar pedidos
+│
+├── assets/                    # Recursos estáticos
+│   ├── css/
+│   │   ├── base.css           # Estilos globales: reset, tipografía, utilidades
+│   │   └── tienda.css         # Estilos de catálogo, producto, carrito y checkout
+│   ├── js/                    # (opcional) JS externo si decides separar
+│   └── img/                   # Imágenes del sitio
+│       ├── placeholder.jpg
+│       └── (imágenes de productos)
+│
+├── config/                    # Configuración del sistema
+│   ├── app.php                # Configuración general (BASE_URL, DEBUG, TZ, etc.)
+│   ├── bootstrap.php          # Inicialización del proyecto
+│   └── db.php                 # Conexión a la base de datos
+│
+├── public/                    # Páginas públicas accesibles
+│   ├── index.php              # Página inicial
+│   ├── catalogo.php           # Listado de productos
+│   ├── producto.php           # Detalle de producto
+│   ├── carrito.php            # Carrito de compras
+│   └── checkout.php           # Checkout (formulario + resumen)
+│
+├── templates/                 # Componentes comunes (opcional)
+│   ├── header.php             # Cabecera con <head> y menú
+│   ├── nav.php                # Navegación (si está separada)
+│   └── footer.php             # Pie de página
+│
+├── admin/                     # Panel administrativo (pendiente)
+│   ├── index.php              # Dashboard admin
+│   ├── productos.php          # CRUD productos
+│   └── pedidos.php            # Gestión de pedidos
+│
+├── uploads/                   # Archivos subidos por usuarios/admin
+│   ├── productos/             # Imágenes de productos cargadas por admin
+│   └── usuarios/              # Avatares o documentos
+│
+└── README.md                  # Documentación del proyecto
+
+
+
+🚀 Funcionalidades implementadas
+1. API
+api/health.php: responde {ok:true, db:"conectado"} para verificar estado del sistema.
+api/products.php: expone productos en JSON con filtros (ej. ?active=1).
+(Pendiente) api/orders.php: recibirá pedidos para guardarlos en la BD.
+2. Frontend público (public/)
+catalogo.php:
+Lista de productos en tarjetas con imagen, nombre, descripción y precio.
+Buscador en tiempo real.
+Contador de carrito (🛒) sincronizado.
+producto.php:
+Muestra detalle de producto (imagen grande, precio, descripción).
+Botón “Añadir al carrito” → guarda en localStorage.
+Permite elegir cantidad.
+carrito.php:
+Tabla con productos añadidos (editar cantidades, eliminar, vaciar).
+Cálculo de subtotal y total.
+Botón “Finalizar compra” que enlaza a checkout.
+checkout.php:
+Formulario de cliente (nombre, email, teléfono, dirección, ciudad, CP).
+Métodos de pago simulados (tarjeta, transferencia, contraentrega).
+Resumen del pedido con total.
+Confirmación simulada: guarda last_order en localStorage, vacía carrito y redirige.
+
+3. Estilos (assets/css/)
+base.css: reset + estilos globales.
+tienda.css: catálogo, producto, carrito, checkout.
+
+4. Configuración (config/)
+app.php: define BASE_URL, zona horaria, etc.
+db.php: conexión a MySQL/MariaDB.
+bootstrap.php: inicialización del entorno.
+
+5. Estructura para crecer
+templates/: componentes comunes (header.php, footer.php, nav.php) listos para incluir en las páginas.
+admin/: panel de administración para productos y pedidos (a desarrollar).
+uploads/: carpeta para almacenar imágenes y archivos subidos.
+
+✅ Estado actual
+
+Catálogo → Detalle → Carrito → Checkout → Confirmación: funciona de extremo a extremo.
+Contador del carrito 🛒 sincronizado en todo el sitio.
+Estilos organizados en CSS separado.
+Flujo de compra probado correctamente.

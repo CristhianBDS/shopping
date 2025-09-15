@@ -1,0 +1,66 @@
+/* ===== Utilidades comunes de la tienda ===== */
+.page { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+.muted { color:#6b7280; }
+.badge { font-size:.75rem; padding:.2rem .5rem; border-radius:999px; border:1px solid #e5e7eb; background:#fff; }
+.btn { display:inline-flex; gap:.5rem; align-items:center; padding:.6rem 1rem; border-radius:10px; border:1px solid #111827; background:#111827; color:#fff; cursor:pointer; }
+.btn.secondary { background:#fff; color:#111827; }
+.search { padding:.5rem .75rem; border:1px solid #e5e7eb; border-radius: 8px; width: 240px; }
+.empty { padding:2rem; text-align:center; color:#6b7280; border:1px dashed #e5e7eb; border-radius:12px; background:#fff; }
+
+/* ===== Catálogo ===== */
+.catalogo-header { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem; }
+.catalogo-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:1rem; }
+.card { border:1px solid #e5e7eb; border-radius:12px; padding:.75rem; display:flex; flex-direction:column; gap:.5rem; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.04); transition:transform .12s ease, box-shadow .12s ease; }
+.card:hover { transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,.08); }
+.card img { width:100%; height:200px; object-fit:cover; border-radius:10px; }
+.card .name { font-weight:600; font-size:1rem; }
+.card .price { font-weight:700; }
+
+/* ===== Detalle de producto ===== */
+.back { display:inline-flex; gap:.4rem; align-items:center; margin-bottom:1rem; }
+.product-wrap { display:grid; grid-template-columns:1fr 1fr; gap:2rem; }
+.product-wrap img { width:100%; max-height:520px; object-fit:cover; border-radius:12px; border:1px solid #e5e7eb; }
+.product-title { font-size:1.6rem; font-weight:700; margin:.2rem 0 .6rem; }
+.product-price { font-size:1.4rem; font-weight:700; margin:.8rem 0; }
+.qty { width:80px; padding:.4rem .5rem; border:1px solid #e5e7eb; border-radius:8px; }
+.row { display:flex; gap:.75rem; align-items:center; margin-top:1rem; }
+@media(max-width:860px){ .product-wrap{ grid-template-columns:1fr; } }
+
+/* Botón carrito flotante en detalle */
+.cart-fab { position:fixed; top:12px; right:12px; background:#111827; color:#fff; border-radius:999px; padding:.5rem .8rem; }
+
+/* ===== Carrito ===== */
+.cart-top { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem; }
+.cart-grid { display:grid; grid-template-columns:1fr 330px; gap:1.25rem; }
+.card-box { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:1rem; }
+table { width:100%; border-collapse:collapse; }
+th,td { padding:.6rem .4rem; border-bottom:1px solid #f0f0f0; vertical-align:middle; }
+.right { text-align:right; }
+.total { font-weight:700; font-size:1.2rem; }
+.item { display:flex; gap:.8rem; align-items:center; }
+.thumb { width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb; }
+@media(max-width:980px){ .cart-grid{ grid-template-columns:1fr; } }
+/* ===== Checkout ===== */
+.checkout-top { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem; }
+.checkout-grid { display:grid; grid-template-columns: 1fr 360px; gap:1.25rem; }
+.ck-form label { display:block; font-size:.95rem; margin-bottom:.75rem; }
+.ck-form input, .ck-form textarea {
+  width:100%; padding:.55rem .7rem; border:1px solid #e5e7eb; border-radius:8px; font: inherit;
+}
+.ck-form .row-2 { display:grid; grid-template-columns: 1fr 1fr; gap:.75rem; }
+.ck-form h3 { margin-top:1rem; margin-bottom:.5rem; }
+.pay-methods { display:flex; gap:1rem; align-items:center; margin-bottom:1rem; }
+
+.ck-list { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:.6rem; }
+.ck-item { display:grid; grid-template-columns: 64px 1fr auto; gap:.6rem; align-items:center; }
+.ck-item img { width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb; }
+.ck-item .name { font-weight:600; }
+
+.ck-totals { display:flex; flex-direction:column; gap:.4rem; }
+.ck-totals > div { display:flex; justify-content:space-between; }
+.ck-totals .total { font-size:1.2rem; font-weight:700; margin-top:.3rem; }
+
+@media (max-width: 980px){
+  .checkout-grid { grid-template-columns: 1fr; }
+  .ck-form .row-2 { grid-template-columns: 1fr; }
+}
