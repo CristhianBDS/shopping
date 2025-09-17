@@ -24,7 +24,7 @@ if ($id <= 0) { http_response_code(400); echo "<p>Producto inválido.</p>"; exit
   (function(){
     const BASE = <?= json_encode($BASE) ?>;
     const ID = <?= (int)$id ?>;
-    const IMG_DIR = BASE + "/img/";
+    const IMG_DIR = BASE + "/images/";
     const PLACEHOLDER = IMG_DIR + "placeholder.jpg";
     const API_URL = BASE + "/api/products.php?id=" + ID;
 

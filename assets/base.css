@@ -1,0 +1,171 @@
+/* =========================================================
+   ADMIN - Pedidos
+   Estilos específicos para la sección admin/pedidos.php
+   ========================================================= */
+
+.admin-pedidos .filtros {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+  align-items: flex-end;
+}
+
+.admin-pedidos .campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-pedidos .input,
+.admin-pedidos .select {
+  padding: 8px;
+  min-width: 220px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.admin-pedidos .acciones {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  display: inline-block;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  text-decoration: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.btn-sm {
+  padding: 6px 10px;
+  font-size: 0.9rem;
+}
+
+.btn-primary {
+  border-color: #0d6efd;
+  background: #0d6efd;
+  color: #fff;
+}
+
+.btn-link {
+  border: none;
+  background: transparent;
+  color: #0d6efd;
+  padding: 8px 0;
+}
+
+.admin-pedidos .resumen {
+  margin: 6px 0;
+  color: #555;
+}
+
+.tabla-wrapper {
+  overflow: auto;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla thead th {
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid #ddd;
+}
+
+.tabla tbody td {
+  padding: 8px;
+  border-bottom: 1px solid #f3f3f3;
+}
+
+.tabla .num {
+  text-align: right;
+}
+
+.tabla .accion {
+  text-align: center;
+}
+
+.tabla-empty {
+  padding: 24px;
+  text-align: center;
+  color: #777;
+}
+
+.paginacion {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  align-items: center;
+}
+
+.paginacion .page-link {
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  text-decoration: none;
+}
+
+.paginacion .page-current {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #efefef;
+}
+
+.badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  border: 1px solid transparent;
+}
+
+.badge-pendiente {
+  background: #fff4e5;
+  border-color: #ffd399;
+}
+
+.badge-pagado {
+  background: #e6ffed;
+  border-color: #9ae6b4;
+}
+
+.badge-enviado {
+  background: #e6f0ff;
+  border-color: #a3bffa;
+}
+
+.badge-cancelado {
+  background: #ffe6e6;
+  border-color: #ffb3b3;
+}
+/* utilidades */
+.hidden { display: none !important; }
+/* ===============================
+   ADMIN - Pedido (detalle)
+   =============================== */
+.admin-pedido .link-back{display:inline-block;margin:8px 0;text-decoration:none;}
+.admin-pedido .pedido-grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin:16px 0;}
+.admin-pedido .card{border:1px solid #eee;border-radius:12px;padding:12px;background:#fff;}
+.admin-pedido .meta{display:grid;gap:8px;}
+.admin-pedido .meta dt{font-weight:600;color:#333;}
+.admin-pedido .meta dd{margin:0;color:#555;}
+.admin-pedido .form-estado{display:flex;flex-direction:column;gap:8px;max-width:260px;}
+.admin-pedido .form-estado select{padding:8px;border:1px solid #ddd;border-radius:8px;}
+.admin-pedido .form-actions{margin-top:4px;}
+.admin-pedido .btn{display:inline-block;padding:8px 12px;border:1px solid #ddd;border-radius:8px;text-decoration:none;}
+.admin-pedido .btn-primary{border-color:#0d6efd;background:#0d6efd;color:#fff;}
+.admin-pedido .tabla-wrapper{overflow:auto;}
+.admin-pedido .tabla{width:100%;border-collapse:collapse;}
+.admin-pedido .tabla thead th{text-align:left;padding:8px;border-bottom:1px solid #ddd;}
+.admin-pedido .tabla tbody td{padding:8px;border-bottom:1px solid #f3f3f3;}
+.admin-pedido .tabla .num{text-align:right;}
+.admin-pedido .tabla-empty{padding:24px;text-align:center;color:#777;}
+.alert{padding:10px 12px;border-radius:8px;margin:8px 0;border:1px solid transparent;}
+.alert-ok{background:#e6ffed;border-color:#9ae6b4;}
+.alert-error{background:#ffe6e6;border-color:#ffb3b3;}

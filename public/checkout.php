@@ -89,7 +89,7 @@ $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
   <script>
   (function(){
     const BASE = <?= json_encode($BASE) ?>;
-    const IMG_DIR = BASE + "/img/";
+    const IMG_DIR = BASE + "/images/";
     const PLACEHOLDER = IMG_DIR + "placeholder.jpg";
 
     const $empty = document.getElementById("ck-empty");

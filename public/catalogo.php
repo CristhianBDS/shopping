@@ -8,6 +8,7 @@ $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Catálogo</title>
+  <!-- RUTAS CORRECTAS A CSS -->
   <link rel="stylesheet" href="<?= $BASE ?>/assets/base.css">
   <link rel="stylesheet" href="<?= $BASE ?>/assets/tienda.css">
 </head>
@@ -23,14 +24,16 @@ $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
     </header>
 
     <section id="grid" class="catalogo-grid" aria-live="polite"></section>
-    <div id="empty" class="empty" style="display:none;">No hay productos para mostrar.</div>
+    <!-- evita inline styles; usa clase hidden y pon su CSS en base.css -->
+    <div id="empty" class="empty hidden">No hay productos para mostrar.</div>
   </main>
 
   <script>
   (function () {
     const BASE = <?= json_encode($BASE) ?>;
     const API_URL = BASE + "/api/products.php?active=1";
-    const IMG_DIR = BASE + "/img/";
+    // RUTA CORRECTA A LAS IMÁGENES
+    const IMG_DIR = BASE + "/images/";
     const PLACEHOLDER = IMG_DIR + "placeholder.jpg";
 
     const grid = document.getElementById("grid");
@@ -46,14 +49,19 @@ $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
       catch (_) { return "€ " + Number(n).toFixed(2); }
     }
 
+    function setEmpty(show, msg) {
+      empty.classList.toggle('hidden', !show);
+      if (msg) empty.textContent = msg;
+    }
+
     function render(items) {
       grid.innerHTML = "";
       if (!items || items.length === 0) {
-        empty.style.display = "block";
+        setEmpty(true, "No hay productos para mostrar.");
         count.textContent = "0 items";
         return;
       }
-      empty.style.display = "none";
+      setEmpty(false);
       count.textContent = items.length + (items.length === 1 ? " item" : " items");
 
       const frag = document.createDocumentFragment();
@@ -62,9 +70,10 @@ $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
         const card = document.createElement("article");
         card.className = "card";
         const href = `${BASE}/public/producto.php?id=${p.id}`;
+        const imgName = (p.image && String(p.image).trim()) ? p.image : 'placeholder.jpg';
         card.innerHTML = `
           <a class="cover" href="${href}" aria-label="Ver ${p.name || 'producto'}">
-            <img src="${IMG_DIR + (p.image || 'placeholder.jpg')}" alt="${p.name || ''}" onerror="this.src='${PLACEHOLDER}'" />
+            <img src="${IMG_DIR + imgName}" alt="${p.name || ''}" onerror="this.src='${PLACEHOLDER}'" />
           </a>
           <div class="name" title="${p.name || ''}">
             <a href="${href}">${p.name || ''}</a>
@@ -92,13 +101,21 @@ $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
       try {
         const res = await fetch(API_URL);
         const json = await res.json();
-        all = Array.isArray(json?.data) ? json.data : [];
-        all = all.filter(p => String(p.is_active) === "1");
+
+        // ACEPTA 'is_active' o 'active' (según cómo lo devuelva la API)
+        let rows = Array.isArray(json?.data) ? json.data : [];
+        // normaliza flags
+        rows = rows.map(p => ({
+          ...p,
+          is_active: p.hasOwnProperty('is_active') ? p.is_active : (p.hasOwnProperty('active') ? p.active : 1)
+        }));
+        // filtra activos (acepta "1", 1, true)
+        all = rows.filter(p => String(p.is_active) === "1" || p.is_active === 1 || p.is_active === true);
+
         applyFilter();
       } catch (err) {
         console.error(err);
-        empty.style.display = "block";
-        empty.textContent = "Error cargando productos.";
+        setEmpty(true, "Error cargando productos.");
       }
     }
 

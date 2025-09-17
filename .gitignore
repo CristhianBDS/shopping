@@ -1,5 +1,12 @@
-/config/*.php
-/admin/uploads/
-/storage/
+# Archivos y carpetas a ignorar
 /vendor/
-/node_modules/
+node_modules/
+.env
+*.log
+*.lock
+.idea/
+.vscode/
+.DS_Store
+
+# Carpeta de subidas (no la versionamos, suele contener imágenes pesadas)
+uploads/

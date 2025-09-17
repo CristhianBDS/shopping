@@ -1,22 +1,14 @@
 <?php
-// shopping/api/health.php
-header("Content-Type: application/json; charset=UTF-8");
+declare(strict_types=1);
+header('Content-Type: application/json; charset=utf-8');
 
-require_once __DIR__ . "/../config/db.php";
-
-$response = [
-    "ok" => true,
-    "time" => date("Y-m-d H:i:s"),
-    "db" => "desconectado"
-];
+require_once __DIR__ . '/../config/db.php';
 
 try {
-    $conn = getConnection();
-    if ($conn && !$conn->connect_error) {
-        $response["db"] = "conectado";
-    }
-} catch (Exception $e) {
-    $response["db"] = "error: " . $e->getMessage();
+  $pdo = getConnection(); // PDO
+  $pdo->query("SELECT 1"); // simple ping
+  echo json_encode(['ok' => true, 'time' => date('Y-m-d H:i:s'), 'db' => 'conectado'], JSON_UNESCAPED_UNICODE);
+} catch (Throwable $e) {
+  http_response_code(500);
+  echo json_encode(['ok' => false, 'error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
 }
-
-echo json_encode($response, JSON_UNESCAPED_UNICODE);
