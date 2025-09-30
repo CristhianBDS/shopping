@@ -34,7 +34,7 @@ function active($needle, $uri)
 
       <ul class="navbar-nav">
         <li class="nav-item"><a class="nav-link <?= active('/login.php', $uri) ?>" href="<?= $base ?>/admin/login.php">Login</a></li>
-        <li class="nav-item"><a class="nav-link" href="<?= $base ?>admin/logout.php">Salir</a></li>
+        <li class="nav-item"><a class="nav-link" href="<?= $base ?>/admin/logout.php">Salir</a></li>
       </ul>
     </div>
   </div>
