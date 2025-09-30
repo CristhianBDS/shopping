@@ -1,21 +1,34 @@
 <?php
 // admin/producto_form.php
 require_once __DIR__ . '/../config/app.php';
-require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../inc/auth.php';
+
+$CONTEXT = 'admin';
+$PAGE_TITLE = 'Producto';
+requireLogin();
 
 $pdo = getConnection();
 $id  = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
+// CSRF del formulario
+if (empty($_SESSION['csrf_admin_form'])) {
+  $_SESSION['csrf_admin_form'] = bin2hex(random_bytes(32));
+}
+$csrf = $_SESSION['csrf_admin_form'];
+
 $producto = [
   'name' => '', 'description' => '', 'price' => '', 'image' => '', 'is_active' => 1
 ];
+
+$oldImage = '';
 
 if ($id > 0) {
   $stmt = $pdo->prepare("SELECT * FROM products WHERE id = ?");
   $stmt->execute([$id]);
   if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     $producto = $row;
+    $oldImage = trim((string)($row['image'] ?? ''));
   } else {
     http_response_code(404);
     die('Producto no encontrado');
@@ -33,7 +46,17 @@ function slug_filename($name) {
 }
 
 $errors = [];
+$newImageName = '';
+$uploadDirPath = __DIR__ . '/../uploads';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+  // Verificación CSRF
+  $token = $_POST['csrf'] ?? '';
+  if (!hash_equals($_SESSION['csrf_admin_form'] ?? '', $token)) {
+    $errors[] = 'Token CSRF inválido. Recarga la página.';
+  }
+
   $name = trim($_POST['name'] ?? '');
   $description = trim($_POST['description'] ?? '');
   $price = str_replace(',', '.', trim($_POST['price'] ?? ''));
@@ -43,24 +66,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if ($price === '' || !is_numeric($price)) $errors[] = 'Precio inválido.';
   if (strlen($name) > 150) $errors[] = 'Nombre demasiado largo (máx 150).';
 
-  $newImageName = '';
+  // Validación de subida (si hay archivo)
   if (!empty($_FILES['image']['name'])) {
     $file = $_FILES['image'];
     if ($file['error'] === UPLOAD_ERR_OK) {
-      $allowed = ['jpg','jpeg','png','webp'];
+      $allowedExt = ['jpg','jpeg','png','webp'];
       $maxSize = 2 * 1024 * 1024;
       $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+      if (!in_array($ext, $allowedExt, true)) {
+        $errors[] = 'Formato no permitido (JPG, PNG, WebP).';
+      }
+      if ($file['size'] > $maxSize) {
+        $errors[] = 'La imagen supera 2 MB.';
+      }
 
-      if (!in_array($ext, $allowed, true)) $errors[] = 'Formato no permitido (jpg, png, webp).';
-      if ($file['size'] > $maxSize) $errors[] = 'La imagen supera 2 MB.';
+      // Validación MIME real
+      $finfo = new finfo(FILEINFO_MIME_TYPE);
+      $mime = $finfo->file($file['tmp_name']);
+      $allowedMime = ['image/jpeg','image/png','image/webp'];
+      if (!in_array($mime, $allowedMime, true)) {
+        $errors[] = 'El archivo no es una imagen válida.';
+      }
 
-      $baseName = slug_filename(pathinfo($file['name'], PATHINFO_FILENAME));
-      $newImageName = $baseName . '-' . substr(sha1(uniqid('', true)), 0, 8) . '.' . $ext;
+      // Preparar nombre final
+      if (!$errors) {
+        $baseName = slug_filename(pathinfo($file['name'], PATHINFO_FILENAME));
+        $newImageName = $baseName . '-' . substr(sha1(uniqid('', true)), 0, 8) . '.' . $ext;
 
-      $uploadDirPath = __DIR__ . '/../uploads';
-      if (!is_dir($uploadDirPath)) { @mkdir($uploadDirPath, 0775, true); }
-      if (!is_dir($uploadDirPath) || !is_writable($uploadDirPath)) {
-        $errors[] = 'La carpeta /uploads no existe o no tiene permisos.';
+        if (!is_dir($uploadDirPath)) { @mkdir($uploadDirPath, 0775, true); }
+        if (!is_dir($uploadDirPath) || !is_writable($uploadDirPath)) {
+          $errors[] = 'La carpeta /uploads no existe o no tiene permisos.';
+        }
       }
     } else {
       $errors[] = 'Error al subir la imagen (código '.(int)$file['error'].').';
@@ -69,10 +105,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   if (!$errors) {
     try {
+      // Mover imagen si corresponde
       if ($newImageName) {
         $dest = $uploadDirPath . DIRECTORY_SEPARATOR . $newImageName;
         if (!move_uploaded_file($_FILES['image']['tmp_name'], $dest)) {
           $errors[] = 'No se pudo mover la imagen subida.';
+        } else {
+          // Limpieza opcional: borrar imagen anterior si estaba en uploads
+          if ($id > 0 && $oldImage) {
+            $oldPath = $uploadDirPath . DIRECTORY_SEPARATOR . $oldImage;
+            if (is_file($oldPath)) { @unlink($oldPath); }
+          }
         }
       }
 
@@ -92,6 +135,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           $pdo->prepare($sql)->execute([$name, $description, $price, $newImageName ?: null, $is_active]);
           $id = (int)$pdo->lastInsertId();
         }
+        // Rotar token para evitar reenvíos
+        unset($_SESSION['csrf_admin_form']);
         header('Location: ' . BASE_URL . '/admin/productos.php?ok=1'); exit;
       }
     } catch (Throwable $e) {
@@ -107,8 +152,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if ($newImageName) $producto['image'] = $newImageName;
 }
 
-include __DIR__ . '/../templates/header.php';
-
 function image_url_current($fname) {
   $fname = trim((string)$fname);
   $base  = rtrim(BASE_URL, '/');
@@ -119,6 +162,8 @@ function image_url_current($fname) {
   if (is_file($im)) return $base . '/images/' . $fname;
   return $base . '/images/placeholder.jpg';
 }
+
+include __DIR__ . '/../templates/header.php';
 ?>
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h1 class="h3 mb-0"><?= $id ? 'Editar' : 'Nuevo' ?> producto</h1>
@@ -137,6 +182,7 @@ function image_url_current($fname) {
 <div class="card shadow-sm">
   <div class="card-body">
     <form action="<?= htmlspecialchars($_SERVER['REQUEST_URI']) ?>" method="post" enctype="multipart/form-data">
+      <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
       <div class="row g-3">
         <div class="col-lg-8">
           <div class="mb-3">

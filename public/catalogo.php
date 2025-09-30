@@ -1,6 +1,13 @@
 <?php
+// public/catalogo.php
 require_once __DIR__ . '/../config/app.php';
+require_once __DIR__ . '/../config/bootstrap.php';
+
+$CONTEXT = 'public';
+$PAGE_TITLE = 'Catálogo';
+
 $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
+
 include __DIR__ . '/../templates/header.php';
 ?>
 <div class="page">
@@ -149,4 +156,5 @@ include __DIR__ . '/../templates/header.php';
   refreshCartBadge();
 })();
 </script>
+
 <?php include __DIR__ . '/../templates/footer.php'; ?>

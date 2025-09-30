@@ -1,10 +1,13 @@
 <?php
 // admin/productos.php — listado con búsqueda, filtro, paginación y CSRF en acciones
 require_once __DIR__ . '/../config/app.php';
-require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../inc/auth.php';
 
-if (session_status() !== PHP_SESSION_ACTIVE) session_start();
+$CONTEXT = 'admin';
+requireLogin();
+
+$PAGE_TITLE = 'Productos';
 
 $pdo = getConnection();
 

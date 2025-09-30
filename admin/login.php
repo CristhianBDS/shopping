@@ -1,16 +1,18 @@
 <?php
 // admin/login.php (robusto a distintos esquemas de users)
 require_once __DIR__ . '/../config/app.php';
-require_once __DIR__ . '/../config/db.php';
-if (session_status() !== PHP_SESSION_ACTIVE) session_start();
-
-$pdo = getConnection();
+require_once __DIR__ . '/../config/bootstrap.php'; // sesión + DB
 
 // Si ya está logueado, fuera
 if (!empty($_SESSION['user'])) {
   header('Location: ' . BASE_URL . '/admin/index.php');
   exit;
 }
+
+$CONTEXT = 'public'; // mostramos nav pública para el login
+$PAGE_TITLE = 'Login';
+
+$pdo = getConnection();
 
 // CSRF
 if (empty($_SESSION['csrf_login'])) {
@@ -22,8 +24,17 @@ $errors = [];
 $notice = '';
 if (isset($_GET['bye'])) $notice = 'Sesión cerrada correctamente.';
 
-// Redirección post-login
-$redirect = isset($_GET['r']) ? trim($_GET['r']) : (BASE_URL . '/admin/index.php');
+// Redirección post-login (sólo interna)
+$redirect = BASE_URL . '/admin/index.php';
+if (!empty($_GET['r'])) {
+  // Permitimos sólo rutas internas relativas a BASE_URL
+  $r = trim($_GET['r']);
+  if (str_starts_with($r, BASE_URL . '/admin/')) {
+    $redirect = $r;
+  } elseif (str_starts_with($r, '/admin/')) {
+    $redirect = BASE_URL . $r;
+  }
+}
 
 // Procesar login
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -48,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$errors) {
-      // ¡Clave! Pedimos *todas* las columnas para no fallar por nombres distintos.
+      // Pedimos todas las columnas para no fallar por nombres distintos.
       $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ? LIMIT 1");
       $stmt->execute([$email]);
       $u = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -83,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   ->execute([$new, (int)$u['id']]);
             }
           } else {
-            // Parece texto plano u otro algoritmo no soportado: migramos si coincide exactamente
+            // Texto plano u otro algoritmo no soportado: migramos si coincide exactamente
             if (hash_equals($hash, $pass)) {
               $ok = true;
               $new = password_hash($pass, PASSWORD_DEFAULT);
@@ -99,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               'id'    => (int)$u['id'],
               'name'  => $u['name'] ?? '',
               'email' => $u['email'] ?? $email,
-              'role'  => $u['role'] ?? 'admin', // por si tu tabla no tiene 'role'
+              'role'  => $u['role'] ?? 'admin',
             ];
             $_SESSION['login_attempts'] = [];
             unset($_SESSION['csrf_login']);

@@ -1,12 +1,18 @@
-<?php
+<?php 
 // public/index.php — Home de la tienda
 require_once __DIR__ . '/../config/app.php';
+require_once __DIR__ . '/../config/bootstrap.php';
+
+$CONTEXT = 'public';
+$PAGE_TITLE = 'Inicio';
+
 $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
-include __DIR__ . '/../templates/header.php';
 
 // Hero opcional si existe /images/hero.jpg
 $heroFile = __DIR__ . '/../images/hero.jpg';
 $heroUrl  = is_file($heroFile) ? ($BASE . '/images/hero.jpg') : null;
+
+include __DIR__ . '/../templates/header.php';
 ?>
 
 <section class="py-5 text-center">

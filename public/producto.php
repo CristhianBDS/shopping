@@ -1,226 +1,98 @@
 <?php
-// admin/productos.php — listado con búsqueda, filtro y paginación
+// public/producto.php — Detalle de producto público
 require_once __DIR__ . '/../config/app.php';
-require_once __DIR__ . '/../config/db.php';
-require_once __DIR__ . '/../inc/auth.php';
+require_once __DIR__ . '/../config/bootstrap.php';
 
-$pdo = getConnection();
+$CONTEXT = 'public';
 
-/* ==============================
-   Acciones (activar/desactivar, borrar suave)
-   ============================== */
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $action = $_POST['action'] ?? '';
-  $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+$pdo  = getConnection();
+$BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
 
-  try {
-    if ($action === 'toggle' && $id > 0) {
-      $pdo->prepare("UPDATE products SET is_active = 1 - is_active, updated_at = NOW() WHERE id = ?")
-          ->execute([$id]);
-      header('Location: ' . BASE_URL . '/admin/productos.php?ok=toggle'); exit;
-    }
-    if ($action === 'delete' && $id > 0) {
-      // borrado suave: marcamos inactivo
-      $pdo->prepare("UPDATE products SET is_active = 0, updated_at = NOW() WHERE id = ?")
-          ->execute([$id]);
-      header('Location: ' . BASE_URL . '/admin/productos.php?ok=delete'); exit;
-    }
-  } catch (Throwable $e) {
-    header('Location: ' . BASE_URL . '/admin/productos.php?error=1'); exit;
-  }
+$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+if ($id <= 0) {
+  http_response_code(400);
+  die('Producto no válido');
 }
 
-/* ==============================
-   Filtros y paginación
-   ============================== */
-$q       = trim($_GET['q'] ?? '');
-$estado  = ($_GET['estado'] ?? 'all');          // all | 1 | 0
-$page    = max(1, (int)($_GET['page'] ?? 1));
-$per     = 10;                                  // items por página
-$offset  = ($page - 1) * $per;
-
-$whereParts = [];
-$params = [];
-
-// Filtro por texto (nombre o descripción)
-if ($q !== '') {
-  $whereParts[] = '(name LIKE ? OR description LIKE ?)';
-  $like = '%' . $q . '%';
-  $params[] = $like;
-  $params[] = $like;
+// Traer producto activo
+$stmt = $pdo->prepare("SELECT id, name, description, price, image, is_active FROM products WHERE id = ? AND is_active = 1");
+$stmt->execute([$id]);
+$p = $stmt->fetch(PDO::FETCH_ASSOC);
+if (!$p) {
+  http_response_code(404);
+  die('Producto no encontrado');
 }
 
-// Filtro por estado
-if ($estado === '1' || $estado === '0') {
-  $whereParts[] = 'is_active = ?';
-  $params[] = (int)$estado;
-}
+$PAGE_TITLE = $p['name'] ?? 'Producto';
 
-$whereSql = $whereParts ? implode(' AND ', $whereParts) : '1=1';
-
-// Total para paginación
-$stmtTotal = $pdo->prepare("SELECT COUNT(*) FROM products WHERE $whereSql");
-$stmtTotal->execute($params);
-$totalRows = (int)$stmtTotal->fetchColumn();
-$totalPages = max(1, (int)ceil($totalRows / $per));
-
-// Datos página
-$sql = "SELECT id, name, price, image, is_active
-        FROM products
-        WHERE $whereSql
-        ORDER BY id DESC
-        LIMIT $per OFFSET $offset";
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Helpers
-function image_url($row) {
-  $fname = trim((string)($row['image'] ?? ''));
+// Helper imagen con fallback
+function image_url($fname) {
+  $fname = trim((string)$fname);
   $base  = rtrim(BASE_URL, '/');
+  if ($fname === '') return $base . '/images/placeholder.jpg';
   $up = __DIR__ . '/../uploads/' . $fname;
   $im = __DIR__ . '/../images/' . $fname;
-  if ($fname && is_file($up)) return $base . '/uploads/' . $fname;
-  if ($fname && is_file($im)) return $base . '/images/' . $fname;
+  if (is_file($up)) return $base . '/uploads/' . $fname;
+  if (is_file($im)) return $base . '/images/' . $fname;
   return $base . '/images/placeholder.jpg';
-}
-function build_qs(array $overrides = []) {
-  $base = [
-    'q' => $_GET['q'] ?? '',
-    'estado' => $_GET['estado'] ?? 'all',
-  ];
-  $merged = array_merge($base, $overrides);
-  // quitar vacíos para URLs limpias
-  if (isset($merged['q']) && trim($merged['q']) === '') unset($merged['q']);
-  if (isset($merged['estado']) && $merged['estado'] === 'all') unset($merged['estado']);
-  return http_build_query($merged);
 }
 
 include __DIR__ . '/../templates/header.php';
 ?>
-<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-  <h1 class="h3 mb-0">Productos</h1>
-  <a href="<?= BASE_URL ?>/admin/producto_form.php" class="btn btn-primary">Nuevo producto</a>
-</div>
-
-<?php if (isset($_GET['ok'])): ?>
-  <div class="alert alert-success">Acción realizada correctamente.</div>
-<?php elseif (isset($_GET['error'])): ?>
-  <div class="alert alert-danger">Ocurrió un error. Inténtalo de nuevo.</div>
-<?php endif; ?>
-
-<!-- Filtros -->
-<form class="row g-2 align-items-end mb-3" method="get" action="">
-  <div class="col-sm-6 col-md-4">
-    <label class="form-label">Buscar</label>
-    <input type="text" class="form-control" name="q" value="<?= htmlspecialchars($q) ?>" placeholder="Nombre o descripción…">
-  </div>
-  <div class="col-sm-4 col-md-3">
-    <label class="form-label">Estado</label>
-    <select name="estado" class="form-select">
-      <option value="all" <?= $estado==='all'?'selected':'' ?>>Todos</option>
-      <option value="1" <?= $estado==='1'?'selected':'' ?>>Activos</option>
-      <option value="0" <?= $estado==='0'?'selected':'' ?>>Inactivos</option>
-    </select>
-  </div>
-  <div class="col-auto">
-    <button class="btn btn-outline-secondary">Filtrar</button>
-  </div>
-  <?php if ($q !== '' || ($estado === '1' || $estado === '0')): ?>
-    <div class="col-auto">
-      <a class="btn btn-outline-dark" href="<?= BASE_URL ?>/admin/productos.php">Limpiar</a>
+<div class="row g-4">
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm">
+      <img id="prod-img" class="img-fluid rounded" src="<?= htmlspecialchars(image_url($p['image'])) ?>" alt="<?= htmlspecialchars($p['name'] ?? 'Producto') ?>">
     </div>
-  <?php endif; ?>
-</form>
+  </div>
+  <div class="col-md-6">
+    <h1 class="h3 mb-2"><?= htmlspecialchars($p['name']) ?></h1>
+    <div class="text-muted mb-3"><?= nl2br(htmlspecialchars($p['description'] ?? '')) ?></div>
+    <div class="h4 mb-4">€ <?= number_format((float)$p['price'], 2, ',', '.') ?></div>
 
-<!-- Resumen -->
-<?php
-$from = $totalRows ? ($offset + 1) : 0;
-$to   = $offset + count($productos);
-?>
-<p class="text-muted small mb-2">
-  Mostrando <?= $from ?>–<?= $to ?> de <?= $totalRows ?> resultado<?= $totalRows===1?'':'s' ?>.
-</p>
-
-<div class="card shadow-sm">
-  <div class="card-body">
-    <div class="table-responsive">
-      <table class="table table-striped table-hover align-middle mb-0">
-        <thead class="table-light">
-          <tr>
-            <th style="width:80px">ID</th>
-            <th style="width:64px">Imagen</th>
-            <th>Nombre</th>
-            <th class="text-end" style="width:140px">Precio</th>
-            <th style="width:120px">Estado</th>
-            <th class="text-end" style="width:260px">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-        <?php if (!$productos): ?>
-          <tr><td colspan="6" class="text-center text-muted py-4">No hay productos</td></tr>
-        <?php else: foreach ($productos as $p): ?>
-          <tr>
-            <td><?= (int)$p['id'] ?></td>
-            <td><img class="thumb-sm" src="<?= image_url($p) ?>" alt=""></td>
-            <td><?= htmlspecialchars($p['name']) ?></td>
-            <td class="text-end">€ <?= number_format((float)$p['price'], 2, ',', '.') ?></td>
-            <td>
-              <?php if ((int)$p['is_active'] === 1): ?>
-                <span class="badge bg-success-subtle border border-success-subtle text-success-emphasis rounded-pill">Activo</span>
-              <?php else: ?>
-                <span class="badge bg-secondary-subtle border border-secondary-subtle text-secondary-emphasis rounded-pill">Inactivo</span>
-              <?php endif; ?>
-            </td>
-            <td class="text-end">
-              <a class="btn btn-sm btn-outline-primary" href="<?= BASE_URL ?>/admin/producto_form.php?id=<?= (int)$p['id'] ?>">Editar</a>
-
-              <form action="" method="post" class="d-inline">
-                <input type="hidden" name="action" value="toggle">
-                <input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
-                <button class="btn btn-sm btn-outline-warning" type="submit">
-                  <?= (int)$p['is_active']===1 ? 'Desactivar' : 'Activar' ?>
-                </button>
-              </form>
-
-              <form action="" method="post" class="d-inline" onsubmit="return confirm('¿Inactivar este producto?');">
-                <input type="hidden" name="action" value="delete">
-                <input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
-                <button class="btn btn-sm btn-outline-danger" type="submit">Borrar</button>
-              </form>
-            </td>
-          </tr>
-        <?php endforeach; endif; ?>
-        </tbody>
-      </table>
+    <div class="d-flex gap-2 align-items-center">
+      <label class="form-label m-0">Cantidad</label>
+      <input id="qty" type="number" min="1" value="1" class="form-control" style="width: 110px;">
+      <button id="addCart" class="btn btn-primary">Añadir al carrito</button>
+      <a class="btn btn-outline-secondary" href="<?= $BASE ?>/public/carrito.php">Ir al carrito</a>
     </div>
 
-    <!-- Paginación -->
-    <?php if ($totalPages > 1): ?>
-    <nav class="mt-3">
-      <ul class="pagination pagination-sm mb-0">
-        <?php
-          $prevDisabled = $page <= 1 ? ' disabled' : '';
-          $nextDisabled = $page >= $totalPages ? ' disabled' : '';
-        ?>
-        <li class="page-item<?= $prevDisabled ?>">
-          <a class="page-link" href="?<?= htmlspecialchars(build_qs(['page' => $page - 1])) ?>" tabindex="-1">«</a>
-        </li>
-
-        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-          <?php $active = ($i === $page) ? ' active' : ''; ?>
-          <li class="page-item<?= $active ?>">
-            <a class="page-link" href="?<?= htmlspecialchars(build_qs(['page' => $i])) ?>"><?= $i ?></a>
-          </li>
-        <?php endfor; ?>
-
-        <li class="page-item<?= $nextDisabled ?>">
-          <a class="page-link" href="?<?= htmlspecialchars(build_qs(['page' => $page + 1])) ?>">»</a>
-        </li>
-      </ul>
-    </nav>
-    <?php endif; ?>
+    <div class="mt-3">
+      <a class="btn btn-link p-0" href="<?= $BASE ?>/public/catalogo.php">← Volver al catálogo</a>
+    </div>
   </div>
 </div>
+
+<script>
+(function(){
+  const BASE = <?= json_encode($BASE) ?>;
+  const product = {
+    id: <?= (int)$p['id'] ?>,
+    name: <?= json_encode($p['name']) ?>,
+    price: <?= json_encode((float)$p['price']) ?>,
+    image: <?= json_encode($p['image']) ?>
+  };
+
+  function getCart(){ try { return JSON.parse(localStorage.getItem('cart') || '[]'); } catch { return []; } }
+  function setCart(c){ localStorage.setItem('cart', JSON.stringify(c)); }
+  function addToCart(prod, qty){
+    qty = Math.max(1, parseInt(qty||1,10));
+    const cart = getCart();
+    const idx = cart.findIndex(i => String(i.id) === String(prod.id));
+    if (idx >= 0) {
+      cart[idx].qty = (parseInt(cart[idx].qty||0,10) + qty);
+    } else {
+      cart.push({ id: prod.id, name: prod.name, price: prod.price, qty, image: prod.image });
+    }
+    setCart(cart);
+  }
+
+  document.getElementById('addCart').addEventListener('click', function(){
+    const q = document.getElementById('qty').value;
+    addToCart(product, q);
+    alert('Producto añadido al carrito');
+  });
+})();
+</script>
 
 <?php include __DIR__ . '/../templates/footer.php'; ?>
