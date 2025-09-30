@@ -1,110 +1,226 @@
 <?php
+// admin/productos.php — listado con búsqueda, filtro y paginación
 require_once __DIR__ . '/../config/app.php';
-$BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
-$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-if ($id <= 0) { http_response_code(400); echo "<p>Producto inválido.</p>"; exit; }
+require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../inc/auth.php';
+
+$pdo = getConnection();
+
+/* ==============================
+   Acciones (activar/desactivar, borrar suave)
+   ============================== */
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $action = $_POST['action'] ?? '';
+  $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+
+  try {
+    if ($action === 'toggle' && $id > 0) {
+      $pdo->prepare("UPDATE products SET is_active = 1 - is_active, updated_at = NOW() WHERE id = ?")
+          ->execute([$id]);
+      header('Location: ' . BASE_URL . '/admin/productos.php?ok=toggle'); exit;
+    }
+    if ($action === 'delete' && $id > 0) {
+      // borrado suave: marcamos inactivo
+      $pdo->prepare("UPDATE products SET is_active = 0, updated_at = NOW() WHERE id = ?")
+          ->execute([$id]);
+      header('Location: ' . BASE_URL . '/admin/productos.php?ok=delete'); exit;
+    }
+  } catch (Throwable $e) {
+    header('Location: ' . BASE_URL . '/admin/productos.php?error=1'); exit;
+  }
+}
+
+/* ==============================
+   Filtros y paginación
+   ============================== */
+$q       = trim($_GET['q'] ?? '');
+$estado  = ($_GET['estado'] ?? 'all');          // all | 1 | 0
+$page    = max(1, (int)($_GET['page'] ?? 1));
+$per     = 10;                                  // items por página
+$offset  = ($page - 1) * $per;
+
+$whereParts = [];
+$params = [];
+
+// Filtro por texto (nombre o descripción)
+if ($q !== '') {
+  $whereParts[] = '(name LIKE ? OR description LIKE ?)';
+  $like = '%' . $q . '%';
+  $params[] = $like;
+  $params[] = $like;
+}
+
+// Filtro por estado
+if ($estado === '1' || $estado === '0') {
+  $whereParts[] = 'is_active = ?';
+  $params[] = (int)$estado;
+}
+
+$whereSql = $whereParts ? implode(' AND ', $whereParts) : '1=1';
+
+// Total para paginación
+$stmtTotal = $pdo->prepare("SELECT COUNT(*) FROM products WHERE $whereSql");
+$stmtTotal->execute($params);
+$totalRows = (int)$stmtTotal->fetchColumn();
+$totalPages = max(1, (int)ceil($totalRows / $per));
+
+// Datos página
+$sql = "SELECT id, name, price, image, is_active
+        FROM products
+        WHERE $whereSql
+        ORDER BY id DESC
+        LIMIT $per OFFSET $offset";
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
+$productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Helpers
+function image_url($row) {
+  $fname = trim((string)($row['image'] ?? ''));
+  $base  = rtrim(BASE_URL, '/');
+  $up = __DIR__ . '/../uploads/' . $fname;
+  $im = __DIR__ . '/../images/' . $fname;
+  if ($fname && is_file($up)) return $base . '/uploads/' . $fname;
+  if ($fname && is_file($im)) return $base . '/images/' . $fname;
+  return $base . '/images/placeholder.jpg';
+}
+function build_qs(array $overrides = []) {
+  $base = [
+    'q' => $_GET['q'] ?? '',
+    'estado' => $_GET['estado'] ?? 'all',
+  ];
+  $merged = array_merge($base, $overrides);
+  // quitar vacíos para URLs limpias
+  if (isset($merged['q']) && trim($merged['q']) === '') unset($merged['q']);
+  if (isset($merged['estado']) && $merged['estado'] === 'all') unset($merged['estado']);
+  return http_build_query($merged);
+}
 
 include __DIR__ . '/../templates/header.php';
 ?>
-<a class="cart-fab" href="<?= $BASE ?>/public/carrito.php">🛒 <span id="cart-count">0</span></a>
-<section id="view"></section>
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+  <h1 class="h3 mb-0">Productos</h1>
+  <a href="<?= BASE_URL ?>/admin/producto_form.php" class="btn btn-primary">Nuevo producto</a>
+</div>
 
-<script>
-(function(){
-  const BASE = <?= json_encode($BASE) ?>;
-  const ID = <?= (int)$id ?>;
-  const IMG_UPLOADS = BASE + "/uploads/";
-  const IMG_IMAGES  = BASE + "/images/";
-  const PLACEHOLDER = IMG_IMAGES + "placeholder.jpg";
-  const API_URL = BASE + "/api/products.php?id=" + ID;
+<?php if (isset($_GET['ok'])): ?>
+  <div class="alert alert-success">Acción realizada correctamente.</div>
+<?php elseif (isset($_GET['error'])): ?>
+  <div class="alert alert-danger">Ocurrió un error. Inténtalo de nuevo.</div>
+<?php endif; ?>
 
-  const $view = document.getElementById("view");
+<!-- Filtros -->
+<form class="row g-2 align-items-end mb-3" method="get" action="">
+  <div class="col-sm-6 col-md-4">
+    <label class="form-label">Buscar</label>
+    <input type="text" class="form-control" name="q" value="<?= htmlspecialchars($q) ?>" placeholder="Nombre o descripción…">
+  </div>
+  <div class="col-sm-4 col-md-3">
+    <label class="form-label">Estado</label>
+    <select name="estado" class="form-select">
+      <option value="all" <?= $estado==='all'?'selected':'' ?>>Todos</option>
+      <option value="1" <?= $estado==='1'?'selected':'' ?>>Activos</option>
+      <option value="0" <?= $estado==='0'?'selected':'' ?>>Inactivos</option>
+    </select>
+  </div>
+  <div class="col-auto">
+    <button class="btn btn-outline-secondary">Filtrar</button>
+  </div>
+  <?php if ($q !== '' || ($estado === '1' || $estado === '0')): ?>
+    <div class="col-auto">
+      <a class="btn btn-outline-dark" href="<?= BASE_URL ?>/admin/productos.php">Limpiar</a>
+    </div>
+  <?php endif; ?>
+</form>
 
-  function money(n){
-    try { return new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR'}).format(n); }
-    catch(_) { return "€ " + Number(n).toFixed(2); }
-  }
+<!-- Resumen -->
+<?php
+$from = $totalRows ? ($offset + 1) : 0;
+$to   = $offset + count($productos);
+?>
+<p class="text-muted small mb-2">
+  Mostrando <?= $from ?>–<?= $to ?> de <?= $totalRows ?> resultado<?= $totalRows===1?'':'s' ?>.
+</p>
 
-  // Mini carrito
-  function getCart(){ try { return JSON.parse(localStorage.getItem("cart") || "[]"); } catch { return []; } }
-  function setCart(c){ localStorage.setItem("cart", JSON.stringify(c)); refreshCartBadge(); }
-  function cartCount(){ return getCart().reduce((a,i)=>a+(Number(i.qty)||0),0); }
-  function refreshCartBadge(){ const c = document.getElementById("cart-count"); if (c) c.textContent = String(cartCount()); }
-  window.addEventListener("storage", (ev) => { if (ev.key === "cart") refreshCartBadge(); });
+<div class="card shadow-sm">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-striped table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width:80px">ID</th>
+            <th style="width:64px">Imagen</th>
+            <th>Nombre</th>
+            <th class="text-end" style="width:140px">Precio</th>
+            <th style="width:120px">Estado</th>
+            <th class="text-end" style="width:260px">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+        <?php if (!$productos): ?>
+          <tr><td colspan="6" class="text-center text-muted py-4">No hay productos</td></tr>
+        <?php else: foreach ($productos as $p): ?>
+          <tr>
+            <td><?= (int)$p['id'] ?></td>
+            <td><img class="thumb-sm" src="<?= image_url($p) ?>" alt=""></td>
+            <td><?= htmlspecialchars($p['name']) ?></td>
+            <td class="text-end">€ <?= number_format((float)$p['price'], 2, ',', '.') ?></td>
+            <td>
+              <?php if ((int)$p['is_active'] === 1): ?>
+                <span class="badge bg-success-subtle border border-success-subtle text-success-emphasis rounded-pill">Activo</span>
+              <?php else: ?>
+                <span class="badge bg-secondary-subtle border border-secondary-subtle text-secondary-emphasis rounded-pill">Inactivo</span>
+              <?php endif; ?>
+            </td>
+            <td class="text-end">
+              <a class="btn btn-sm btn-outline-primary" href="<?= BASE_URL ?>/admin/producto_form.php?id=<?= (int)$p['id'] ?>">Editar</a>
 
-  function render(p){
-    if (!p) { $view.innerHTML = "<p>No se encontró el producto.</p>"; return; }
+              <form action="" method="post" class="d-inline">
+                <input type="hidden" name="action" value="toggle">
+                <input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
+                <button class="btn btn-sm btn-outline-warning" type="submit">
+                  <?= (int)$p['is_active']===1 ? 'Desactivar' : 'Activar' ?>
+                </button>
+              </form>
 
-    const firstSrc = (p.image && String(p.image).trim())
-      ? (IMG_UPLOADS + p.image)
-      : PLACEHOLDER;
-    const secondSrc = IMG_IMAGES + (p.image || '');
+              <form action="" method="post" class="d-inline" onsubmit="return confirm('¿Inactivar este producto?');">
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
+                <button class="btn btn-sm btn-outline-danger" type="submit">Borrar</button>
+              </form>
+            </td>
+          </tr>
+        <?php endforeach; endif; ?>
+        </tbody>
+      </table>
+    </div>
 
-    $view.innerHTML = `
-      <div class="page">
-        <a class="back" href="${BASE}/public/catalogo.php">← Volver al catálogo</a>
-        <div class="product-wrap">
-          <div>
-            <img id="prod-img" src="${firstSrc}" alt="${p.name || ''}">
-          </div>
-          <div>
-            <h1 class="product-title">${p.name || ''}</h1>
-            <div class="product-price">${money(p.price || 0)}</div>
-            <p class="muted">${p.description || ''}</p>
-            <div class="row">
-              <label for="qty">Cantidad</label>
-              <input id="qty" class="qty" type="number" min="1" max="99" value="1" />
-            </div>
-            <div class="row">
-              <button id="add" class="btn">🛒 Añadir al carrito</button>
-              <button id="favorite" class="btn secondary">☆ Favorito</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
+    <!-- Paginación -->
+    <?php if ($totalPages > 1): ?>
+    <nav class="mt-3">
+      <ul class="pagination pagination-sm mb-0">
+        <?php
+          $prevDisabled = $page <= 1 ? ' disabled' : '';
+          $nextDisabled = $page >= $totalPages ? ' disabled' : '';
+        ?>
+        <li class="page-item<?= $prevDisabled ?>">
+          <a class="page-link" href="?<?= htmlspecialchars(build_qs(['page' => $page - 1])) ?>" tabindex="-1">«</a>
+        </li>
 
-    const img = document.getElementById('prod-img');
-    let stage = 0; // 0: uploads → 1: images → 2: placeholder
-    img.onerror = function(){
-      if (stage === 0) { img.src = secondSrc; stage = 1; }
-      else if (stage === 1) { img.src = PLACEHOLDER; stage = 2; }
-      else { img.onerror = null; }
-    };
+        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+          <?php $active = ($i === $page) ? ' active' : ''; ?>
+          <li class="page-item<?= $active ?>">
+            <a class="page-link" href="?<?= htmlspecialchars(build_qs(['page' => $i])) ?>"><?= $i ?></a>
+          </li>
+        <?php endfor; ?>
 
-    const qty = document.getElementById("qty");
-    document.getElementById("add").addEventListener("click", () => addToCart(p, Number(qty.value || 1)));
-    document.getElementById("favorite").addEventListener("click", () => toggleFav(p));
-  }
+        <li class="page-item<?= $nextDisabled ?>">
+          <a class="page-link" href="?<?= htmlspecialchars(build_qs(['page' => $page + 1])) ?>">»</a>
+        </li>
+      </ul>
+    </nav>
+    <?php endif; ?>
+  </div>
+</div>
 
-  function addToCart(p, q){
-    const cart = getCart();
-    const idx = cart.findIndex(i => i.id === p.id);
-    if (idx >= 0) cart[idx].qty += q; else cart.push({ id:p.id, name:p.name, price:p.price, image:p.image, qty:q });
-    setCart(cart);
-    alert("Agregado al carrito ✔");
-    refreshCartBadge();
-  }
-
-  function toggleFav(p){
-    const key = "favorites";
-    let fav = JSON.parse(localStorage.getItem(key) || "[]");
-    if (fav.includes(p.id)) { fav = fav.filter(id => id !== p.id); alert("Quitado de favoritos"); }
-    else { fav.push(p.id); alert("Añadido a favoritos"); }
-    localStorage.setItem(key, JSON.stringify(fav));
-  }
-
-  (async function load(){
-    try{
-      const r = await fetch(API_URL);
-      const j = await r.json();
-      render(j?.data);
-      refreshCartBadge();
-    }catch(e){
-      console.error(e);
-      $view.innerHTML = "<p>Error cargando el producto.</p>";
-    }
-  })();
-})();
-</script>
 <?php include __DIR__ . '/../templates/footer.php'; ?>

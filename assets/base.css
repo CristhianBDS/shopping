@@ -169,3 +169,13 @@
 .alert{padding:10px 12px;border-radius:8px;margin:8px 0;border:1px solid transparent;}
 .alert-ok{background:#e6ffed;border-color:#9ae6b4;}
 .alert-error{background:#ffe6e6;border-color:#ffb3b3;}
+/* =========================================================
+   ADMIN - Utilidades de imágenes
+   ========================================================= */
+.thumb-sm {
+  width:48px;
+  height:48px;
+  object-fit:cover;
+  border-radius:8px;
+  border:1px solid #eee;
+}
