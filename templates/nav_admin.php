@@ -2,6 +2,12 @@
 // templates/nav_admin.php
 $BASE = BASE_URL;
 $name = isset($_SESSION['user']['name']) ? $_SESSION['user']['name'] : 'Usuario';
+
+// Detectar página activa por path
+$path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '';
+$active = function(string $file) use ($path): string {
+  return str_ends_with($path, "/admin/$file") ? ' active' : '';
+};
 ?>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom">
   <div class="container">
@@ -13,9 +19,9 @@ $name = isset($_SESSION['user']['name']) ? $_SESSION['user']['name'] : 'Usuario'
 
     <div class="collapse navbar-collapse" id="navAdmin">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        <li class="nav-item"><a class="nav-link" href="<?= $BASE ?>/admin/index.php">Dashboard</a></li>
-        <li class="nav-item"><a class="nav-link" href="<?= $BASE ?>/admin/pedidos.php">Pedidos</a></li>
-        <li class="nav-item"><a class="nav-link" href="<?= $BASE ?>/admin/productos.php">Productos</a></li>
+        <li class="nav-item"><a class="nav-link<?= $active('index.php') ?>" href="<?= $BASE ?>/admin/index.php">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link<?= $active('pedidos.php') ?>" href="<?= $BASE ?>/admin/pedidos.php">Pedidos</a></li>
+        <li class="nav-item"><a class="nav-link<?= $active('productos.php') ?>" href="<?= $BASE ?>/admin/productos.php">Productos</a></li>
       </ul>
 
       <div class="d-flex gap-2 align-items-center">

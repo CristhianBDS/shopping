@@ -85,6 +85,7 @@ include __DIR__ . '/../templates/header.php';
       cart.push({ id: prod.id, name: prod.name, price: prod.price, qty, image: prod.image });
     }
     setCart(cart);
+    window.dispatchEvent(new Event('cart:updated'));
   }
 
   document.getElementById('addCart').addEventListener('click', function(){
