@@ -1,8 +1,14 @@
 <?php
 // templates/header.php
 // Requiere: BASE_URL y TZ definidos en config/app.php
-if (!isset($CONTEXT)) { $CONTEXT = 'public'; } // 'public' | 'admin'
-if (!isset($PAGE_TITLE)) { $PAGE_TITLE = 'Tienda'; }
+if (!isset($CONTEXT))   { $CONTEXT = 'public'; } // 'public' | 'admin'
+if (!isset($PAGE_TITLE)){ $PAGE_TITLE = 'Tienda'; }
+
+// Cargar gestor de flashes si existe (no rompe si aún no lo agregaste)
+$flashPath = __DIR__ . '/../inc/flash.php';
+if (file_exists($flashPath)) {
+  require_once $flashPath;
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -28,3 +34,6 @@ if (!isset($PAGE_TITLE)) { $PAGE_TITLE = 'Tienda'; }
   }
 ?>
 <main class="container py-4">
+  <?php if ($CONTEXT === 'admin' && function_exists('flash_render')): ?>
+    <?php flash_render(); ?>
+  <?php endif; ?>
