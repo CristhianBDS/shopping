@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../inc/auth.php';
+require_once __DIR__ . '/../inc/flash.php';
 
 $CONTEXT = 'admin';
 requireLogin();
@@ -18,13 +19,13 @@ if (empty($_SESSION['csrf_admin'])) {
 $csrf = $_SESSION['csrf_admin'];
 
 /* ==============================
-   Acciones (activar/desactivar, borrado suave) con CSRF
+   Acciones (activar/desactivar, borrado suave) con CSRF + FLASH
    ============================== */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $token = $_POST['csrf'] ?? '';
   if (!hash_equals($_SESSION['csrf_admin'] ?? '', $token)) {
-    header('Location: ' . BASE_URL . '/admin/productos.php?error=csrf');
-    exit;
+    flash_error('Error CSRF. Recarga la página e inténtalo de nuevo.');
+    header('Location: ' . BASE_URL . '/admin/productos.php'); exit;
   }
 
   $action = $_POST['action'] ?? '';
@@ -34,17 +35,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'toggle' && $id > 0) {
       $pdo->prepare("UPDATE products SET is_active = 1 - is_active, updated_at = NOW() WHERE id = ?")
           ->execute([$id]);
-      header('Location: ' . BASE_URL . '/admin/productos.php?ok=toggle'); exit;
+      flash_success('Estado del producto actualizado.');
+      header('Location: ' . BASE_URL . '/admin/productos.php'); exit;
     }
     if ($action === 'delete' && $id > 0) {
       // borrado suave: marcamos inactivo
       $pdo->prepare("UPDATE products SET is_active = 0, updated_at = NOW() WHERE id = ?")
           ->execute([$id]);
-      header('Location: ' . BASE_URL . '/admin/productos.php?ok=delete'); exit;
+      flash_success('Producto inactivado.');
+      header('Location: ' . BASE_URL . '/admin/productos.php'); exit;
     }
-    header('Location: ' . BASE_URL . '/admin/productos.php?error=action'); exit;
+    flash_info('Acción no reconocida.');
+    header('Location: ' . BASE_URL . '/admin/productos.php'); exit;
   } catch (Throwable $e) {
-    header('Location: ' . BASE_URL . '/admin/productos.php?error=1'); exit;
+    flash_error('Ocurrió un error al procesar la acción.');
+    if (defined('DEBUG') && DEBUG) { flash_error('DB: '.$e->getMessage()); }
+    header('Location: ' . BASE_URL . '/admin/productos.php'); exit;
   }
 }
 
@@ -114,16 +120,6 @@ include __DIR__ . '/../templates/header.php';
   <a href="<?= BASE_URL ?>/admin/producto_form.php" class="btn btn-primary">Nuevo producto</a>
 </div>
 
-<?php if (isset($_GET['ok'])): ?>
-  <div class="alert alert-success">Acción realizada correctamente.</div>
-<?php elseif (isset($_GET['error'])): ?>
-  <?php if ($_GET['error']==='csrf'): ?>
-    <div class="alert alert-danger">Error CSRF. Recarga la página e inténtalo de nuevo.</div>
-  <?php else: ?>
-    <div class="alert alert-danger">Ocurrió un error. Inténtalo de nuevo.</div>
-  <?php endif; ?>
-<?php endif; ?>
-
 <form class="row g-2 align-items-end mb-3" method="get" action="">
   <div class="col-sm-6 col-md-4">
     <label class="form-label">Buscar</label>
@@ -188,7 +184,7 @@ $to   = $offset + count($productos);
             <td class="text-end">
               <a class="btn btn-sm btn-outline-primary" href="<?= BASE_URL ?>/admin/producto_form.php?id=<?= (int)$p['id'] ?>">Editar</a>
 
-              <form action="" method="post" class="d-inline">
+              <form action="" method="post" class="d-inline" onsubmit="return confirm('¿Cambiar estado de este producto?');">
                 <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
                 <input type="hidden" name="action" value="toggle">
                 <input type="hidden" name="id" value="<?= (int)$p['id'] ?>">

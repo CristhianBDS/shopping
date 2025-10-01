@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../inc/auth.php';
+require_once __DIR__ . '/../inc/flash.php';
 
 $CONTEXT = 'admin';
 $PAGE_TITLE = 'Producto';
@@ -129,15 +130,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           $params[] = $is_active;
           $params[] = $id;
           $pdo->prepare($sql)->execute($params);
+          flash_success('Producto actualizado correctamente.');
         } else {
           $sql = "INSERT INTO products (name, description, price, image, is_active, created_at, updated_at)
                   VALUES (?, ?, ?, ?, ?, NOW(), NOW())";
           $pdo->prepare($sql)->execute([$name, $description, $price, $newImageName ?: null, $is_active]);
           $id = (int)$pdo->lastInsertId();
+          flash_success('Producto creado correctamente.');
         }
         // Rotar token para evitar reenvíos
         unset($_SESSION['csrf_admin_form']);
-        header('Location: ' . BASE_URL . '/admin/productos.php?ok=1'); exit;
+        header('Location: ' . BASE_URL . '/admin/productos.php'); exit;
       }
     } catch (Throwable $e) {
       $errors[] = 'Error en BD: ' . $e->getMessage();
