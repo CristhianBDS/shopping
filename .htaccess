@@ -1,0 +1,79 @@
+# ==========================================
+# Proyecto: shopping (Apache .htaccess raíz)
+# ==========================================
+
+# Asegúrate de tener mod_rewrite habilitado en Apache
+RewriteEngine On
+RewriteBase /shopping/
+
+# ---------------------------
+# 404 personalizado (público)
+# ---------------------------
+ErrorDocument 404 /shopping/public/404.php
+
+# ----------------------------
+# Seguridad: bloquear carpetas
+# ----------------------------
+# Bloquea acceso directo a /config y /inc (vía URL)
+RewriteRule ^config/ - [F,L]
+RewriteRule ^inc/ - [F,L]
+
+# Bloquea directorios típicos si existieran
+RewriteRule ^(vendor|node_modules)/ - [F,L]
+
+# -------------------------------
+# Seguridad: bloquear ciertos files
+# -------------------------------
+# Archivos de entorno, backups, y configs que no deben servirse
+<FilesMatch "\.(env|ini|log|sql|yml|yaml|lock|bak|old|dist)$">
+  Require all denied
+</FilesMatch>
+
+# Oculta .git y similares
+RedirectMatch 404 /\.git
+RedirectMatch 404 /\.htaccess\.bak
+RedirectMatch 404 /\.DS_Store
+
+# -----------------------------------
+# Desactivar listado de directorios
+# -----------------------------------
+Options -Indexes
+
+# -----------------------------------
+# Caching de estáticos (si mod_expires)
+# -----------------------------------
+<IfModule mod_expires.c>
+  ExpiresActive On
+  # Imágenes
+  ExpiresByType image/jpeg "access plus 30 days"
+  ExpiresByType image/png  "access plus 30 days"
+  ExpiresByType image/webp "access plus 30 days"
+  ExpiresByType image/gif  "access plus 30 days"
+  ExpiresByType image/svg+xml "access plus 30 days"
+  # CSS & JS
+  ExpiresByType text/css "access plus 7 days"
+  ExpiresByType application/javascript "access plus 7 days"
+  ExpiresByType text/javascript "access plus 7 days"
+  # Fuentes
+  ExpiresByType font/woff2 "access plus 30 days"
+  ExpiresByType font/woff  "access plus 30 days"
+</IfModule>
+
+# -----------------------------------
+# Compresión (si mod_deflate)
+# -----------------------------------
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/plain text/html text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+
+# -----------------------------------
+# Cabeceras básicas
+# -----------------------------------
+<IfModule mod_headers.c>
+  # Evita que iFrames externos embeban tu admin (clickjacking)
+  <FilesMatch "^admin/">
+    Header always set X-Frame-Options "SAMEORIGIN"
+  </FilesMatch>
+  # Tipos MIME
+  Header set X-Content-Type-Options "nosniff"
+</IfModule>

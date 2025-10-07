@@ -169,3 +169,18 @@
 .alert{padding:10px 12px;border-radius:8px;margin:8px 0;border:1px solid transparent;}
 .alert-ok{background:#e6ffed;border-color:#9ae6b4;}
 .alert-error{background:#ffe6e6;border-color:#ffb3b3;}
+/* =========================================================
+   ADMIN - Utilidades de imágenes
+   ========================================================= */
+.thumb-sm {
+  width:48px;
+  height:48px;
+  object-fit:cover;
+  border-radius:8px;
+  border:1px solid #eee;
+}
+.alert { padding:12px 14px; border-radius:6px; border:1px solid transparent; }
+.alert-success { background:#e8f7ee; border-color:#b8ebc9; }
+.alert-danger  { background:#fdecea; border-color:#f5c2c0; }
+.alert-info    { background:#eaf3ff; border-color:#c6ddff; }
+
