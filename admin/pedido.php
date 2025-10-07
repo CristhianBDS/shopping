@@ -1,165 +1,124 @@
 <?php
-// admin/pedido.php — Detalle de pedido + cambio de estado (PDO, sin estilos inline)
+// admin/pedido.php — detalle de un pedido + cambio de estado
 declare(strict_types=1);
+require_once __DIR__ . '/../config/app.php';
+require_once __DIR__ . '/../config/bootstrap.php';
+require_once __DIR__ . '/../inc/auth.php';
+require_once __DIR__ . '/../inc/flash.php';
 
-require_once __DIR__ . '/../config/db.php';
+$CONTEXT = 'admin';
+$PAGE_TITLE = 'Pedido';
+requireLogin();
+
 $pdo = getConnection();
-
-/* ID pedido */
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-if ($id <= 0) { http_response_code(400); echo "ID de pedido inválido."; exit; }
+if ($id <= 0) { http_response_code(400); die('ID inválido'); }
 
-/* POST: cambio de estado */
-$ok = (int)($_GET['ok'] ?? 0);
-$error = '';
+// CSRF panel
+if (empty($_SESSION['csrf_admin'])) $_SESSION['csrf_admin'] = bin2hex(random_bytes(32));
+$csrf = $_SESSION['csrf_admin'];
+
+// POST: cambiar estado
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nuevo = $_POST['status'] ?? '';
-    $permitidos = ['pendiente','pagado','enviado','cancelado'];
-    if (!in_array($nuevo, $permitidos, true)) {
-        $error = "Estado no válido.";
-    } else {
-        $st = $pdo->prepare("UPDATE orders SET status = :s WHERE id = :id");
-        $st->execute([':s'=>$nuevo, ':id'=>$id]);
-        header("Location: pedido.php?id={$id}&ok=1");
-        exit;
+  $tok = $_POST['csrf'] ?? '';
+  if (!hash_equals($_SESSION['csrf_admin'] ?? '', $tok)) {
+    flash_error('CSRF inválido.');
+    header('Location: ' . BASE_URL . '/admin/pedido.php?id='.$id); exit;
+  }
+  $status = $_POST['status'] ?? '';
+  $allowed = ['pendiente','pagado','enviado','cancelado'];
+  if (!in_array($status, $allowed, true)) {
+    flash_error('Estado no válido.');
+  } else {
+    try {
+      $pdo->prepare("UPDATE orders SET status=?, updated_at=NOW() WHERE id=?")->execute([$status, $id]);
+      flash_success('Estado actualizado a: '.$status);
+    } catch (Throwable $e) {
+      flash_error('No se pudo actualizar el estado.');
     }
+  }
+  header('Location: ' . BASE_URL . '/admin/pedido.php?id='.$id); exit;
 }
 
-/* Pedido (campos reales de tu tabla) */
-$sqlPedido = "
-SELECT 
-  o.id, o.status, o.created_at,
-  o.customer_name, o.email, o.phone, o.address, o.city, o.zip,
-  o.notes, o.pay_method, o.total_amount
-FROM orders o
-WHERE o.id = :id
-";
-$stp = $pdo->prepare($sqlPedido);
-$stp->execute([':id'=>$id]);
-$pedido = $stp->fetch(PDO::FETCH_ASSOC);
-if (!$pedido) { http_response_code(404); echo "Pedido no encontrado."; exit; }
+// Cargar pedido + items
+$ord = $pdo->prepare("SELECT * FROM orders WHERE id=?");
+$ord->execute([$id]);
+$o = $ord->fetch(PDO::FETCH_ASSOC);
+if (!$o) { http_response_code(404); die('Pedido no encontrado'); }
 
-/* Ítems del pedido (según tu tabla order_items: name, price, qty, subtotal) */
-$sqlItems = "
-SELECT 
-  oi.product_id,
-  oi.name        AS product_name,
-  oi.price       AS unit_price,
-  oi.qty         AS qty,
-  (oi.qty * oi.price) AS subtotal
-FROM order_items oi
-WHERE oi.order_id = :id
-ORDER BY oi.id ASC
-";
-$sti = $pdo->prepare($sqlItems);
-$sti->execute([':id'=>$id]);
-$items = $sti->fetchAll(PDO::FETCH_ASSOC);
+$it = $pdo->prepare("SELECT product_id, product_name, unit_price, quantity FROM order_items WHERE order_id=?");
+$it->execute([$id]);
+$items = $it->fetchAll(PDO::FETCH_ASSOC);
 
-/* Total calculado desde ítems */
-$totalCalc = 0.0;
-foreach ($items as $it) $totalCalc += (float)$it['subtotal'];
-
-/* Helpers */
-function eur($n): string { return number_format((float)$n, 2, ',', '.') . ' €'; }
-function fdate($s): string { if(!$s) return '-'; try { return (new DateTime($s))->format('d/m/Y H:i'); } catch(Throwable) { return $s; } }
+function eur($n){ return '€ ' . number_format((float)$n, 2, ',', '.'); }
 
 include __DIR__ . '/../templates/header.php';
 ?>
-<main class="admin admin-pedido container">
-  <a class="link-back" href="pedidos.php">&laquo; Volver</a>
-  <h1 class="page-title">Pedido #<?= (int)$pedido['id'] ?></h1>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Pedido #<?= (int)$o['id'] ?></h1>
+  <a class="btn btn-outline-secondary" href="<?= BASE_URL ?>/admin/pedidos.php">Volver</a>
+</div>
 
-  <?php if ($error): ?>
-    <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
-  <?php elseif ($ok): ?>
-    <div class="alert alert-ok">Estado actualizado correctamente.</div>
-  <?php endif; ?>
-
-  <section class="pedido-grid">
-    <div class="card">
-      <h3>Datos del cliente</h3>
-      <dl class="meta">
-        <div><dt>Nombre</dt><dd><?= htmlspecialchars($pedido['customer_name'] ?? '-') ?></dd></div>
-        <div><dt>Email</dt><dd><?= htmlspecialchars($pedido['email'] ?? '-') ?></dd></div>
-        <div><dt>Teléfono</dt><dd><?= htmlspecialchars($pedido['phone'] ?? '-') ?></dd></div>
-        <div><dt>Dirección</dt><dd>
-          <?= htmlspecialchars(($pedido['address'] ?? '')) ?>
-          <?= $pedido['city'] ? ', ' . htmlspecialchars($pedido['city']) : '' ?>
-          <?= $pedido['zip'] ? ' (' . htmlspecialchars($pedido['zip']) . ')' : '' ?>
-        </dd></div>
-        <?php if (!empty($pedido['notes'])): ?>
-          <div><dt>Notas</dt><dd><?= nl2br(htmlspecialchars($pedido['notes'])) ?></dd></div>
-        <?php endif; ?>
-      </dl>
-    </div>
-
-    <div class="card">
-      <h3>Información del pedido</h3>
-      <dl class="meta">
-        <div><dt>Fecha</dt><dd><?= fdate($pedido['created_at'] ?? '') ?></dd></div>
-        <div><dt>Estado</dt><dd>
-          <span class="badge badge-<?= htmlspecialchars((string)$pedido['status']) ?>">
-            <?= htmlspecialchars(ucfirst((string)$pedido['status'])) ?>
-          </span>
-        </dd></div>
-        <div><dt>Método de pago</dt><dd><?= htmlspecialchars($pedido['pay_method'] ?? '-') ?></dd></div>
-        <div><dt>Total (items)</dt><dd><?= eur($totalCalc) ?></dd></div>
-        <?php if ($pedido['total_amount'] !== null): ?>
-          <div><dt>Total (orders.total_amount)</dt><dd><?= eur($pedido['total_amount']) ?></dd></div>
-        <?php endif; ?>
-      </dl>
-    </div>
-
-    <div class="card">
-      <h3>Cambiar estado</h3>
-      <form method="post" class="form-estado" onsubmit="return confirm('¿Confirmar cambio de estado?');">
-        <label for="status">Estado</label>
-        <select name="status" id="status" required>
-          <?php foreach (['pendiente','pagado','enviado','cancelado'] as $e): ?>
-            <option value="<?= $e ?>" <?= $pedido['status']===$e?'selected':'' ?>><?= ucfirst($e) ?></option>
-          <?php endforeach; ?>
-        </select>
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary">Guardar</button>
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Items</h5>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead><tr><th>Producto</th><th class="text-end">Precio</th><th class="text-end">Cant.</th><th class="text-end">Subtotal</th></tr></thead>
+            <tbody>
+              <?php
+              $sum = 0.0;
+              foreach ($items as $r):
+                $sub = (float)$r['unit_price'] * (int)$r['quantity'];
+                $sum += $sub;
+              ?>
+              <tr>
+                <td><?= htmlspecialchars($r['product_name']) ?></td>
+                <td class="text-end"><?= eur($r['unit_price']) ?></td>
+                <td class="text-end"><?= (int)$r['quantity'] ?></td>
+                <td class="text-end"><?= eur($sub) ?></td>
+              </tr>
+              <?php endforeach; ?>
+            </tbody>
+            <tfoot>
+              <tr><th colspan="3" class="text-end">Total</th><th class="text-end"><?= eur($sum) ?></th></tr>
+            </tfoot>
+          </table>
         </div>
-      </form>
+      </div>
     </div>
-  </section>
+  </div>
 
-  <section class="pedido-items">
-    <h2>Productos</h2>
-    <div class="tabla-wrapper">
-      <table class="tabla tabla-items">
-        <thead>
-          <tr>
-            <th>Producto</th>
-            <th class="num">Precio</th>
-            <th class="num">Cantidad</th>
-            <th class="num">Subtotal</th>
-          </tr>
-        </thead>
-        <tbody>
-        <?php if (!$items): ?>
-          <tr><td colspan="4" class="tabla-empty">Sin ítems.</td></tr>
-        <?php else: foreach ($items as $it): ?>
-          <tr>
-            <td><?= htmlspecialchars($it['product_name'] ?: ('ID ' . (int)$it['product_id'])) ?></td>
-            <td class="num"><?= eur($it['unit_price']) ?></td>
-            <td class="num"><?= (int)$it['qty'] ?></td>
-            <td class="num"><?= eur($it['subtotal']) ?></td>
-          </tr>
-        <?php endforeach; endif; ?>
-        </tbody>
-        <?php if ($items): ?>
-        <tfoot>
-          <tr>
-            <th colspan="3" class="num">Total</th>
-            <th class="num"><?= eur($totalCalc) ?></th>
-          </tr>
-        </tfoot>
-        <?php endif; ?>
-      </table>
+  <div class="col-lg-5">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Cliente</h5>
+        <div class="mb-2 text-muted small"><?= htmlspecialchars($o['created_at']) ?></div>
+        <ul class="list-unstyled mb-3">
+          <li><strong><?= htmlspecialchars($o['customer_name']) ?></strong></li>
+          <li><?= htmlspecialchars($o['email']) ?> · <?= htmlspecialchars($o['phone']) ?></li>
+          <li><?= htmlspecialchars($o['address']) ?>, <?= htmlspecialchars($o['city']) ?> (<?= htmlspecialchars($o['zip']) ?>)</li>
+          <?php if (trim((string)$o['doc'])!==''): ?><li>Doc: <?= htmlspecialchars($o['doc']) ?></li><?php endif; ?>
+          <?php if (trim((string)$o['notes'])!==''): ?><li>Notas: <?= nl2br(htmlspecialchars($o['notes'])) ?></li><?php endif; ?>
+        </ul>
+
+        <form method="post" class="d-flex gap-2 align-items-end">
+          <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
+          <div>
+            <label class="form-label">Estado</label>
+            <select name="status" class="form-select">
+              <?php foreach (['pendiente','pagado','enviado','cancelado'] as $st): ?>
+                <option value="<?= $st ?>" <?= $o['status']===$st?'selected':'' ?>><?= ucfirst($st) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <button class="btn btn-primary">Actualizar</button>
+        </form>
+      </div>
     </div>
-  </section>
-</main>
+  </div>
+</div>
+
 <?php include __DIR__ . '/../templates/footer.php'; ?>
