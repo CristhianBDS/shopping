@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     flash_error('Estado no válido.');
   } else {
     try {
-      $pdo->prepare("UPDATE orders SET status=?, updated_at=NOW() WHERE id=?")->execute([$status, $id]);
+     $pdo->prepare("UPDATE orders SET status=? WHERE id=?")->execute([$status, $id]); 
       flash_success('Estado actualizado a: '.$status);
     } catch (Throwable $e) {
       flash_error('No se pudo actualizar el estado.');

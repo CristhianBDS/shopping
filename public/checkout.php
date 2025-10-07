@@ -191,9 +191,20 @@ include __DIR__ . '/../templates/header.php';
     $total.textContent = money(subtotal); // sin envío/impuestos por ahora
   }
 
-  // Enviar (simulado)
+  async function postJSON(url, payload){
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json().catch(()=>({}));
+    if (!res.ok || !json.ok) throw new Error(json.error || ('HTTP ' + res.status));
+    return json;
+  }
+
+  // Enviar (REAL a la API)
   if ($form) {
-    $form.addEventListener("submit", (e) => {
+    $form.addEventListener("submit", async (e) => {
       e.preventDefault();
 
       const data = Object.fromEntries(new FormData($form).entries());
@@ -205,18 +216,31 @@ include __DIR__ . '/../templates/header.php';
         }
       }
 
-      const order = {
-        customer: data,
-        items: getCart(),
-        total: document.getElementById("ck-total").textContent,
-        date: new Date().toISOString()
-      };
+      const items = (getCart()||[]).map(it => ({ id: it.id, qty: Number(it.qty)||1 }));
+      if (!items.length) { alert("Tu carrito está vacío."); return; }
 
-      localStorage.setItem("last_order", JSON.stringify(order));
-      setCart([]); // vaciar carrito
+      try {
+        const payload = {
+          customer: {
+            fullname: data.fullname,
+            email: data.email,
+            phone: data.phone,
+            doc: data.doc || '',
+            address: data.address,
+            city: data.city,
+            zip: data.zip,
+            notes: data.notes || ''
+          },
+          items
+        };
 
-      alert("¡Pedido confirmado! Gracias por tu compra.");
-      window.location.href = BASE + "/public/catalogo.php";
+        const res = await postJSON(BASE + "/api/checkout_create.php", payload);
+        setCart([]);                                  // limpia carrito
+        alert("¡Pedido confirmado! Nº " + res.order_id);
+        window.location.href = BASE + "/public/catalogo.php";
+      } catch (err) {
+        alert("No se pudo crear el pedido: " + (err.message || err));
+      }
     });
   }
 
