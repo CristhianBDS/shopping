@@ -1,157 +1,176 @@
 <?php
-// admin/pedido.php — Detalle de pedido con detección de columnas flexibles
-declare(strict_types=1);
-
-require_once __DIR__ . '/../config/app.php';
+// admin/pedido.php — Detalle + cambio de estado
 require_once __DIR__ . '/../config/bootstrap.php';
+require_once __DIR__ . '/../config/app.php';
+require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/flash.php';
 
-$CONTEXT = 'admin';
-$PAGE_TITLE = 'Pedido';
-requireLogin();
+require_admin();
+
+$BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
+$PAGE_TITLE = 'Detalle del pedido';
+
+if (empty($_SESSION['csrf'])) {
+  $_SESSION['csrf'] = bin2hex(random_bytes(32));
+}
+$CSRF = $_SESSION['csrf'];
+
+$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+if ($id <= 0) {
+  flash_error('ID de pedido inválido');
+  header("Location: {$BASE}/admin/pedidos.php");
+  exit;
+}
 
 $pdo = getConnection();
-$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-if ($id <= 0) { http_response_code(400); die('ID inválido'); }
 
-// --- CSRF panel (para cambios de estado)
-if (empty($_SESSION['csrf_admin'])) $_SESSION['csrf_admin'] = bin2hex(random_bytes(32));
-$csrf = $_SESSION['csrf_admin'];
+$stmt = $pdo->prepare("
+  SELECT o.id, o.customer_name, o.email, o.phone, o.address, o.city, o.zip,
+         o.notes, o.pay_method, o.total_amount, o.created_at, o.status
+  FROM orders o
+  WHERE o.id = ?
+");
+$stmt->execute([$id]);
+$order = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// --- util: detectar columna existente en una tabla
-function pickColumn(PDO $pdo, string $table, array $cands): ?string {
-  $stmt = $pdo->prepare("SHOW COLUMNS FROM `$table`");
-  $stmt->execute();
-  $cols = array_map(fn($r) => strtolower((string)$r['Field']), $stmt->fetchAll(PDO::FETCH_ASSOC));
-  foreach ($cands as $c) if (in_array(strtolower($c), $cols, true)) return $c;
+if (!$order) {
+  flash_error('Pedido no encontrado');
+  header("Location: {$BASE}/admin/pedidos.php");
+  exit;
+}
+
+$stmtI = $pdo->prepare("
+  SELECT oi.product_id, oi.name, oi.price, oi.qty, oi.subtotal
+  FROM order_items oi
+  WHERE oi.order_id = ?
+  ORDER BY oi.id ASC
+");
+$stmtI->execute([$id]);
+$items = $stmtI->fetchAll(PDO::FETCH_ASSOC);
+
+// helpers
+function status_badge(string $s): string {
+  $map = ['pendiente'=>'secondary','confirmado'=>'primary','enviado'=>'success','cancelado'=>'danger'];
+  $cls = $map[$s] ?? 'secondary';
+  return '<span class="badge bg-' . htmlspecialchars($cls) . '">' . htmlspecialchars(ucfirst($s)) . '</span>';
+}
+function next_status(?string $s): ?string {
+  $s = $s ?: 'pendiente';
+  if ($s === 'pendiente')  return 'confirmado';
+  if ($s === 'confirmado') return 'enviado';
   return null;
 }
 
-// --- POST: cambiar estado
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $tok = $_POST['csrf'] ?? '';
-  if (!hash_equals($_SESSION['csrf_admin'] ?? '', $tok)) {
-    flash_error('CSRF inválido.');
-    header('Location: ' . BASE_URL . '/admin/pedido.php?id='.$id); exit;
-  }
-  $status = $_POST['status'] ?? '';
-  $allowed = ['pendiente','pagado','enviado','cancelado'];
-  if (!in_array($status, $allowed, true)) {
-    flash_error('Estado no válido.');
-  } else {
-    try {
-     $pdo->prepare("UPDATE orders SET status=? WHERE id=?")->execute([$status, $id]); 
-      flash_success('Estado actualizado a: '.$status);
-    } catch (Throwable $e) {
-      flash_error('No se pudo actualizar el estado.');
-    }
-  }
-  header('Location: ' . BASE_URL . '/admin/pedido.php?id='.$id); exit;
-}
-
-// --- Cargar pedido
-$stO = $pdo->prepare("SELECT * FROM orders WHERE id=?");
-$stO->execute([$id]);
-$o = $stO->fetch(PDO::FETCH_ASSOC);
-if (!$o) { http_response_code(404); die('Pedido no encontrado'); }
-
-// --- Detectar columnas reales en order_items
-$nameCol  = pickColumn($pdo, 'order_items', ['product_name','name','product','titulo','title']) ?? 'product_name';
-$priceCol = pickColumn($pdo, 'order_items', ['unit_price','price','precio','unitprice']) ?? 'unit_price';
-$qtyCol   = pickColumn($pdo, 'order_items', ['quantity','qty','cantidad','cant','qty_ordered']) ?? 'quantity';
-
-// --- Traer ítems con alias estables
-$sqlI = "SELECT 
-           product_id, 
-           `$nameCol`  AS product_name, 
-           `$priceCol` AS unit_price, 
-           `$qtyCol`   AS quantity
-         FROM order_items
-         WHERE order_id = ?";
-$stI = $pdo->prepare($sqlI);
-$stI->execute([$id]);
-$items = $stI->fetchAll(PDO::FETCH_ASSOC);
-
-// --- Utilidades
-function eur($n){ return '€ ' . number_format((float)$n, 2, ',', '.'); }
-
-// Calcular total por si total_amount no existe o es NULL
-$calcTotal = 0.0;
-foreach ($items as $r) { $calcTotal += ((float)$r['unit_price']) * ((int)$r['quantity']); }
-$shownTotal = isset($o['total_amount']) && $o['total_amount'] !== null ? (float)$o['total_amount'] : $calcTotal;
-
 include __DIR__ . '/../templates/header.php';
-?>
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="h3 mb-0">Pedido #<?= (int)$o['id'] ?></h1>
-  <a class="btn btn-outline-secondary" href="<?= BASE_URL ?>/admin/pedidos.php">Volver</a>
-</div>
 
-<div class="row g-3">
-  <div class="col-lg-7">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h5 class="card-title">Items</h5>
-        <div class="table-responsive">
-          <table class="table table-sm align-middle mb-0">
-            <thead>
-              <tr><th>Producto</th><th class="text-end">Precio</th><th class="text-end">Cant.</th><th class="text-end">Subtotal</th></tr>
-            </thead>
-            <tbody>
-              <?php foreach ($items as $r): 
-                $sub = ((float)$r['unit_price']) * ((int)$r['quantity']); ?>
+// Si NO renderizas en header.php, descomenta:
+// flash_render();
+?>
+<main class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 mb-0">Pedido #<?= htmlspecialchars($order['id']) ?></h1>
+    <a class="btn btn-outline-secondary" href="<?= $BASE ?>/admin/pedidos.php">← Volver</a>
+  </div>
+
+  <div class="row g-3">
+    <section class="col-lg-8">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h2 class="h6">Cliente</h2>
+          <div class="mb-3">
+            <div><strong><?= htmlspecialchars($order['customer_name']) ?></strong></div>
+            <div><a href="mailto:<?= htmlspecialchars($order['email']) ?>"><?= htmlspecialchars($order['email']) ?></a></div>
+            <?php if (!empty($order['phone'])): ?>
+              <div><a href="tel:<?= htmlspecialchars($order['phone']) ?>"><?= htmlspecialchars($order['phone']) ?></a></div>
+            <?php endif; ?>
+          </div>
+
+          <h2 class="h6">Entrega</h2>
+          <div class="mb-3">
+            <div><?= htmlspecialchars($order['address']) ?></div>
+            <div><?= htmlspecialchars($order['zip'] ?: '') ?> <?= htmlspecialchars($order['city'] ?: '') ?></div>
+          </div>
+
+          <?php if (!empty($order['notes'])): ?>
+            <h2 class="h6">Notas</h2>
+            <p class="mb-3"><?= nl2br(htmlspecialchars($order['notes'])) ?></p>
+          <?php endif; ?>
+
+          <h2 class="h6">Resumen</h2>
+          <div class="table-responsive">
+            <table class="table align-middle">
+              <thead>
                 <tr>
-                  <td><?= htmlspecialchars($r['product_name'] ?? '-') ?></td>
-                  <td class="text-end"><?= eur($r['unit_price'] ?? 0) ?></td>
-                  <td class="text-end"><?= (int)($r['quantity'] ?? 0) ?></td>
-                  <td class="text-end"><?= eur($sub) ?></td>
+                  <th>Producto</th>
+                  <th class="text-end">Precio</th>
+                  <th class="text-end">Cantidad</th>
+                  <th class="text-end">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+              <?php foreach ($items as $it): ?>
+                <tr>
+                  <td><?= htmlspecialchars($it['name'] ?: ('ID ' . $it['product_id'])) ?></td>
+                  <td class="text-end">€ <?= number_format((float)$it['price'], 2, ',', '.') ?></td>
+                  <td class="text-end"><?= (int)$it['qty'] ?></td>
+                  <td class="text-end">€ <?= number_format((float)$it['subtotal'], 2, ',', '.') ?></td>
                 </tr>
               <?php endforeach; ?>
-            </tbody>
-            <tfoot>
-              <tr><th colspan="3" class="text-end">Total</th><th class="text-end"><?= eur($calcTotal) ?></th></tr>
-            </tfoot>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-lg-5">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h5 class="card-title">Cliente</h5>
-        <div class="mb-2 text-muted small"><?= htmlspecialchars($o['created_at'] ?? '') ?></div>
-        <ul class="list-unstyled mb-3">
-          <li><strong><?= htmlspecialchars($o['customer_name'] ?? '-') ?></strong></li>
-          <li><?= htmlspecialchars($o['email'] ?? '-') ?> · <?= htmlspecialchars($o['phone'] ?? '-') ?></li>
-          <li><?= htmlspecialchars($o['address'] ?? '-') ?>, <?= htmlspecialchars($o['city'] ?? '-') ?> (<?= htmlspecialchars($o['zip'] ?? '-') ?>)</li>
-          <?php if (!empty($o['doc'])): ?><li>Doc: <?= htmlspecialchars($o['doc']) ?></li><?php endif; ?>
-          <?php if (!empty($o['notes'])): ?><li>Notas: <?= nl2br(htmlspecialchars($o['notes'])) ?></li><?php endif; ?>
-        </ul>
-
-        <form method="post" class="d-flex gap-2 align-items-end">
-          <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
-          <div>
-            <label class="form-label">Estado</label>
-            <select name="status" class="form-select">
-              <?php foreach (['pendiente','pagado','enviado','cancelado'] as $st): ?>
-                <option value="<?= $st ?>" <?= ($o['status'] ?? '')===$st?'selected':'' ?>><?= ucfirst($st) ?></option>
-              <?php endforeach; ?>
-            </select>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th colspan="3" class="text-end">Total</th>
+                  <th class="text-end">€ <?= number_format((float)$order['total_amount'], 2, ',', '.') ?></th>
+                </tr>
+              </tfoot>
+            </table>
           </div>
-          <button class="btn btn-primary">Actualizar</button>
-        </form>
-
-        <hr>
-        <div class="d-flex justify-content-between">
-          <span class="text-muted">Total (mostrado)</span>
-          <strong><?= eur($shownTotal) ?></strong>
         </div>
       </div>
-    </div>
+    </section>
+
+    <aside class="col-lg-4">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h2 class="h6">Estado del pedido</h2>
+          <p class="mb-2">
+            <?= status_badge($order['status']) ?>
+            <small class="text-muted ms-2">Creado: <?= htmlspecialchars($order['created_at']) ?></small>
+          </p>
+
+          <div class="d-grid gap-2">
+            <?php if ($ns = next_status($order['status'])): ?>
+              <form method="post" action="<?= $BASE ?>/api/orders.php?action=update_status" class="d-grid gap-2">
+                <input type="hidden" name="csrf" value="<?= htmlspecialchars($CSRF) ?>">
+                <input type="hidden" name="order_id" value="<?= (int)$order['id'] ?>">
+                <input type="hidden" name="status" value="<?= htmlspecialchars($ns) ?>">
+                <button type="submit" class="btn btn-primary">Marcar como <?= htmlspecialchars($ns) ?></button>
+              </form>
+            <?php else: ?>
+              <div class="alert alert-success mb-2" role="alert">
+                No hay más acciones disponibles para este estado.
+              </div>
+            <?php endif; ?>
+
+            <?php if ($order['status'] !== 'enviado' && $order['status'] !== 'cancelado'): ?>
+              <form method="post" action="<?= $BASE ?>/api/orders.php?action=update_status" onsubmit="return confirm('¿Cancelar este pedido?');">
+                <input type="hidden" name="csrf" value="<?= htmlspecialchars($CSRF) ?>">
+                <input type="hidden" name="order_id" value="<?= (int)$order['id'] ?>">
+                <input type="hidden" name="status" value="cancelado">
+                <button type="submit" class="btn btn-outline-danger">Cancelar pedido</button>
+              </form>
+            <?php endif; ?>
+          </div>
+
+          <hr>
+          <div class="small text-muted">
+            Flujo: <code>pendiente → confirmado → enviado</code>. Cancelado es opcional.
+          </div>
+        </div>
+      </div>
+    </aside>
   </div>
-</div>
+</main>
 
 <?php include __DIR__ . '/../templates/footer.php'; ?>

@@ -1,144 +1,115 @@
 <?php
-// shopping/api/orders.php
-declare(strict_types=1);
+// api/orders.php — Acciones sobre pedidos (admin)
+require_once __DIR__ . '/../config/bootstrap.php';
+require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../inc/auth.php';   // debe exponer require_admin()
+require_once __DIR__ . '/../inc/flash.php';  // flash_success / flash_error / flash_info
 
-// --- Cabeceras: JSON + CORS (útil si llamas desde /public en el mismo host o futuro host) ---
-header('Content-Type: application/json; charset=UTF-8');
-header('Access-Control-Allow-Origin: *');            // ajusta en prod
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+header('X-Content-Type-Options: nosniff');
 
-// Preflight CORS
-if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
-  http_response_code(204);
+// ------------- RESPUESTA FLEXIBLE (define primero para Intelephense) -------------
+/**
+ * Si es fetch JSON → responde JSON.
+ * Si es form POST → flash + redirect al detalle del pedido.
+ */
+function respond($ok, $msg, $orderId) {
+  $accept    = isset($_SERVER['HTTP_ACCEPT']) ? $_SERVER['HTTP_ACCEPT'] : '';
+  $wantsJson = (stripos($accept, 'application/json') !== false)
+               || (stripos($_SERVER['CONTENT_TYPE'] ?? '', 'application/json') !== false);
+
+  if ($wantsJson) {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['ok' => (bool)$ok, 'message' => (string)$msg, 'order_id' => (int)$orderId]);
+    return;
+  }
+
+  if ($ok) flash_success($msg); else flash_error($msg);
+  $base = defined('BASE_URL') ? BASE_URL : '/shopping';
+  $dest = ($orderId > 0) ? ($base . '/admin/pedido.php?id=' . (int)$orderId) : ($base . '/admin/pedidos.php');
+  header('Location: ' . $dest);
   exit;
 }
 
-// --- Carga de config/DB según tu estructura ---
-require_once __DIR__ . '/../config/app.php';
-require_once __DIR__ . '/../config/db.php'; // <- aquí vive getConnection()
+// ------------- ROUTER SENCILLO -------------
+$action = $_GET['action'] ?? '';
 
-// --- Helper para responder ---
-function respond(int $code, array $payload): never {
-  http_response_code($code);
-  echo json_encode($payload, JSON_UNESCAPED_UNICODE);
-  exit;
+switch ($action) {
+  case 'update_status':
+    update_status();
+    break;
+
+  default:
+    http_response_code(400);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['ok' => false, 'error' => 'Acción inválida']);
+    break;
 }
 
-// --- Sólo aceptamos POST ---
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-if ($method !== 'POST') {
-  respond(405, ['ok' => false, 'error' => 'Método no permitido (usa POST)']);
-}
+// ------------- ACCIONES -------------
+/**
+ * Cambia el estado de un pedido con flujo válido:
+ * pendiente -> confirmado -> enviado (o cancelado antes del final)
+ */
+function update_status() {
+  require_admin(); // redirige si no es admin
 
-// --- Leer y validar JSON ---
-$raw = file_get_contents('php://input');
-$data = json_decode($raw, true);
+  // Acepta form POST o JSON (fetch)
+  $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+  $isJson = stripos($contentType, 'application/json') !== false;
 
-if (!is_array($data)) {
-  respond(400, ['ok' => false, 'error' => 'Cuerpo JSON inválido']);
-}
-
-// Esperamos { customer: {...}, items: [...], total: number/string, pay?:string }
-$customer = $data['customer'] ?? [];
-$items    = $data['items'] ?? [];
-$totalIn  = $data['total'] ?? 0;
-$pay      = $data['pay']    ?? ($customer['pay'] ?? 'tarjeta');
-
-// Normalizamos total si llegó como "€ 123,45" o similar
-$normalizeMoney = function ($v): float {
-  if (is_numeric($v)) return (float)$v;
-  $s = (string)$v;
-  // quita símbolos y deja separadores
-  $s = preg_replace('/[^\d,.\-]/', '', $s) ?? '0';
-  // si trae coma como decimal y punto de miles => quita punto y cambia coma por punto
-  if (strpos($s, ',') !== false && strpos($s, '.') !== false) {
-    $s = str_replace('.', '', $s);
-    $s = str_replace(',', '.', $s);
+  if ($isJson) {
+    $raw     = file_get_contents('php://input') ?: '';
+    $data    = json_decode($raw, true) ?: [];
+    $csrf    = (string)($data['csrf'] ?? '');
+    $orderId = (int)($data['order_id'] ?? 0);
+    $status  = trim((string)($data['status'] ?? ''));
   } else {
-    // si sólo trae coma => úsala como decimal
-    if (strpos($s, ',') !== false) $s = str_replace(',', '.', $s);
+    $csrf    = (string)($_POST['csrf'] ?? '');
+    $orderId = isset($_POST['order_id']) ? (int)$_POST['order_id'] : 0;
+    $status  = isset($_POST['status']) ? trim((string)$_POST['status']) : '';
   }
-  return (float)$s;
-};
-$total = $normalizeMoney($totalIn);
 
-// Validaciones mínimas
-$required = ['fullname','email','phone','address','city','zip'];
-foreach ($required as $k) {
-  if (!isset($customer[$k]) || trim((string)$customer[$k]) === '') {
-    respond(422, ['ok'=>false, 'error'=>"Campo requerido: $k"]);
+  // CSRF
+  if (!hash_equals($_SESSION['csrf'] ?? '', $csrf)) {
+    respond(false, 'CSRF inválido', $orderId);
+    return;
   }
-}
-if (!is_array($items) || count($items) === 0) {
-  respond(422, ['ok'=>false, 'error'=>'El carrito está vacío']);
-}
 
-// Validar método de pago (debe coincidir con tu ENUM)
-$allowedPays = ['tarjeta','transferencia','contraentrega'];
-if (!in_array($pay, $allowedPays, true)) {
-  $pay = 'tarjeta';
-}
+  if ($orderId <= 0 || $status === '') {
+    respond(false, 'Datos inválidos', $orderId);
+    return;
+  }
 
-// --- Insert en BD ---
-$pdo = null; // IMPORTANTE para que exista en el catch
-try {
+  $allowedNext = [
+    'pendiente'  => ['confirmado', 'cancelado'],
+    'confirmado' => ['enviado', 'cancelado'],
+    'enviado'    => [],
+    'cancelado'  => [],
+  ];
+
   $pdo = getConnection();
-  $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-  $pdo->beginTransaction();
 
-  // Insertar order
-  $qOrder = $pdo->prepare("
-    INSERT INTO orders
-      (customer_name, email, phone, address, city, zip, notes, pay_method, total_amount)
-    VALUES
-      (:name, :email, :phone, :addr, :city, :zip, :notes, :pay, :total)
-  ");
-  $qOrder->execute([
-    ':name'  => (string)$customer['fullname'],
-    ':email' => (string)$customer['email'],
-    ':phone' => (string)$customer['phone'],
-    ':addr'  => (string)$customer['address'],
-    ':city'  => (string)$customer['city'],
-    ':zip'   => (string)$customer['zip'],
-    ':notes' => isset($customer['notes']) ? (string)$customer['notes'] : null,
-    ':pay'   => $pay,
-    ':total' => $total,
-  ]);
-  $orderId = (int)$pdo->lastInsertId();
+  // Obtiene estado actual
+  $stmt = $pdo->prepare('SELECT status FROM orders WHERE id = ?');
+  $stmt->execute([$orderId]);
+  $current = $stmt->fetchColumn();
 
-  // Insertar items
-  $qItem = $pdo->prepare("
-    INSERT INTO order_items
-      (order_id, product_id, name, price, qty, subtotal)
-    VALUES
-      (:oid, :pid, :name, :price, :qty, :sub)
-  ");
-
-  foreach ($items as $p) {
-    $pid   = isset($p['id'])    ? (int)$p['id'] : 0;
-    $name  = isset($p['name'])  ? (string)$p['name'] : '';
-    $price = isset($p['price']) ? (float)$p['price'] : 0.0;
-    $qty   = isset($p['qty'])   ? (int)$p['qty']   : 1;
-    $sub   = $price * $qty;
-
-    $qItem->execute([
-      ':oid'   => $orderId,
-      ':pid'   => $pid,
-      ':name'  => $name,
-      ':price' => $price,
-      ':qty'   => $qty,
-      ':sub'   => $sub,
-    ]);
+  if ($current === false) {
+    respond(false, 'Pedido no encontrado', $orderId);
+    return;
   }
 
-  $pdo->commit();
-  respond(201, ['ok'=>true, 'order_id'=>$orderId]);
+  $current = (string)$current;
+  $allowed = $allowedNext[$current] ?? [];
 
-} catch (Throwable $e) {
-  if ($pdo instanceof PDO && $pdo->inTransaction()) {
-    $pdo->rollBack();
+  if (!in_array($status, $allowed, true)) {
+    respond(false, 'Transición no permitida: "' . $current . '" → "' . $status . '"', $orderId);
+    return;
   }
-  // En desarrollo es útil ver el detalle:
-  respond(500, ['ok'=>false, 'error'=>'Error al guardar pedido', 'detail'=>$e->getMessage()]);
+
+  // Actualiza
+  $up = $pdo->prepare('UPDATE orders SET status = :s WHERE id = :id');
+  $up->execute([':s' => $status, ':id' => $orderId]);
+
+  respond(true, 'Pedido actualizado a "' . $status . '"', $orderId);
 }

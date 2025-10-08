@@ -1,13 +1,17 @@
 <?php
-// admin/producto_form.php
-require_once __DIR__ . '/../config/app.php';
+// admin/producto_form.php — Crear/editar producto (con CSRF y subida de imagen segura)
+
 require_once __DIR__ . '/../config/bootstrap.php';
+require_once __DIR__ . '/../config/app.php';
+require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/flash.php';
 
-$CONTEXT = 'admin';
+$CONTEXT    = 'admin';
 $PAGE_TITLE = 'Producto';
-requireLogin();
+
+// Antes: requireLogin();
+require_admin();
 
 $pdo = getConnection();
 $id  = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -19,7 +23,11 @@ if (empty($_SESSION['csrf_admin_form'])) {
 $csrf = $_SESSION['csrf_admin_form'];
 
 $producto = [
-  'name' => '', 'description' => '', 'price' => '', 'image' => '', 'is_active' => 1
+  'name' => '',
+  'description' => '',
+  'price' => '',
+  'image' => '',
+  'is_active' => 1,
 ];
 
 $oldImage = '';
@@ -40,7 +48,9 @@ if ($id > 0) {
 function slug_filename($name) {
   $name = preg_replace('~[^\pL\d]+~u', '-', $name);
   $name = trim($name, '-');
-  $name = iconv('utf-8', 'us-ascii//TRANSLIT', $name);
+  if (function_exists('iconv')) {
+    $name = iconv('utf-8', 'us-ascii//TRANSLIT', $name);
+  }
   $name = strtolower($name);
   $name = preg_replace('~[^-\w.]+~', '', $name);
   return $name ?: 'file';
@@ -58,10 +68,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $errors[] = 'Token CSRF inválido. Recarga la página.';
   }
 
-  $name = trim($_POST['name'] ?? '');
+  $name        = trim($_POST['name'] ?? '');
   $description = trim($_POST['description'] ?? '');
-  $price = str_replace(',', '.', trim($_POST['price'] ?? ''));
-  $is_active = isset($_POST['is_active']) ? 1 : 0;
+  $price       = str_replace(',', '.', trim($_POST['price'] ?? ''));
+  $is_active   = isset($_POST['is_active']) ? 1 : 0;
 
   if ($name === '') $errors[] = 'El nombre es obligatorio.';
   if ($price === '' || !is_numeric($price)) $errors[] = 'Precio inválido.';
@@ -71,8 +81,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if (!empty($_FILES['image']['name'])) {
     $file = $_FILES['image'];
     if ($file['error'] === UPLOAD_ERR_OK) {
-      $allowedExt = ['jpg','jpeg','png','webp'];
-      $maxSize = 2 * 1024 * 1024;
+      $allowedExt  = ['jpg','jpeg','png','webp'];
+      $allowedMime = ['image/jpeg','image/png','image/webp'];
+      $maxSize     = 2 * 1024 * 1024; // 2MB
+
       $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
       if (!in_array($ext, $allowedExt, true)) {
         $errors[] = 'Formato no permitido (JPG, PNG, WebP).';
@@ -81,17 +93,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'La imagen supera 2 MB.';
       }
 
-      // Validación MIME real
-      $finfo = new finfo(FILEINFO_MIME_TYPE);
-      $mime = $finfo->file($file['tmp_name']);
-      $allowedMime = ['image/jpeg','image/png','image/webp'];
-      if (!in_array($mime, $allowedMime, true)) {
-        $errors[] = 'El archivo no es una imagen válida.';
+      // Validación MIME real (requiere extensión fileinfo habilitada)
+      if (class_exists('finfo')) {
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mime  = $finfo->file($file['tmp_name']);
+        if (!in_array($mime, $allowedMime, true)) {
+          $errors[] = 'El archivo no es una imagen válida.';
+        }
       }
 
       // Preparar nombre final
       if (!$errors) {
-        $baseName = slug_filename(pathinfo($file['name'], PATHINFO_FILENAME));
+        $baseName     = slug_filename(pathinfo($file['name'], PATHINFO_FILENAME));
         $newImageName = $baseName . '-' . substr(sha1(uniqid('', true)), 0, 8) . '.' . $ext;
 
         if (!is_dir($uploadDirPath)) { @mkdir($uploadDirPath, 0775, true); }
@@ -123,12 +136,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       if (!$errors) {
         if ($id > 0) {
           $sql = "UPDATE products
-                  SET name=?, description=?, price=?, " . ($newImageName ? "image=?," : "") . " is_active=?, updated_at=NOW()
-                  WHERE id=?";
+                  SET name = ?, description = ?, price = ?, " . ($newImageName ? "image = ?," : "") . " is_active = ?, updated_at = NOW()
+                  WHERE id = ?";
           $params = [$name, $description, $price];
           if ($newImageName) $params[] = $newImageName;
           $params[] = $is_active;
           $params[] = $id;
+
           $pdo->prepare($sql)->execute($params);
           flash_success('Producto actualizado correctamente.');
         } else {
@@ -138,20 +152,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           $id = (int)$pdo->lastInsertId();
           flash_success('Producto creado correctamente.');
         }
+
         // Rotar token para evitar reenvíos
         unset($_SESSION['csrf_admin_form']);
-        header('Location: ' . BASE_URL . '/admin/productos.php'); exit;
+        header('Location: ' . BASE_URL . '/admin/productos.php');
+        exit;
       }
     } catch (Throwable $e) {
       $errors[] = 'Error en BD: ' . $e->getMessage();
+      if (defined('DEBUG') && DEBUG) {
+        // Puedes loguearlo si quieres
+        // error_log($e);
+      }
     }
   }
 
   // Repintar si hay errores
-  $producto['name'] = $name;
-  $producto['description'] = $description;
-  $producto['price'] = $price;
-  $producto['is_active'] = $is_active;
+  $producto['name']       = $name;
+  $producto['description']= $description;
+  $producto['price']      = $price;
+  $producto['is_active']  = $is_active;
   if ($newImageName) $producto['image'] = $newImageName;
 }
 
