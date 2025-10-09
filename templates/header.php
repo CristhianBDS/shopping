@@ -4,10 +4,18 @@
 if (!isset($CONTEXT))   { $CONTEXT = 'public'; } // 'public' | 'admin'
 if (!isset($PAGE_TITLE)){ $PAGE_TITLE = 'Tienda'; }
 
-// Cargar gestor de flashes si existe (no rompe si aún no lo agregaste)
+// Cargar gestor de flashes si existe
 $flashPath = __DIR__ . '/../inc/flash.php';
 if (file_exists($flashPath)) {
   require_once $flashPath;
+}
+
+// Cargar settings si existe (para el nombre de la tienda)
+$settingsPath = __DIR__ . '/../inc/settings.php';
+$SHOP_NAME = 'Mi Tienda';
+if (file_exists($settingsPath)) {
+  require_once $settingsPath;
+  $SHOP_NAME = setting_get('shop_name', 'Mi Tienda');
 }
 ?>
 <!DOCTYPE html>
@@ -15,7 +23,7 @@ if (file_exists($flashPath)) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?= htmlspecialchars($PAGE_TITLE) ?></title>
+  <title><?= htmlspecialchars($PAGE_TITLE ?: $SHOP_NAME) ?></title>
 
   <!-- CSS del proyecto -->
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/base.css">

@@ -1,255 +1,135 @@
 <?php
-// public/checkout.php
+// public/checkout.php — Checkout sin método de pago (adaptado a schema real)
 require_once __DIR__ . '/../config/app.php';
-require_once __DIR__ . '/../config/bootstrap.php';
-
-$CONTEXT = 'public';
-$PAGE_TITLE = 'Checkout';
+require_once __DIR__ . '/../templates/header.php';
 
 $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
-
-include __DIR__ . '/../templates/header.php';
 ?>
-<div class="checkout-top d-flex justify-content-between align-items-center mb-3">
-  <a class="btn btn-outline-secondary" href="<?= $BASE ?>/public/carrito.php">← Volver al carrito</a>
-  <a class="btn btn-outline-dark" href="<?= $BASE ?>/public/carrito.php">🛒 <span id="cart-count">0</span></a>
-</div>
+<main class="checkout-page container py-4">
+  <h1 class="h3 mb-3">Finalizar compra</h1>
+  <p class="text-muted mb-4">Completa tus datos para registrar el pedido. Te contactaremos para coordinar la entrega a domicilio.</p>
 
-<div id="ck-empty" class="empty" style="display:none;">Tu carrito está vacío.</div>
+  <form id="checkout-form" class="card shadow-sm">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Nombre y apellido</label>
+          <input type="text" name="name" class="form-control" required />
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Email</label>
+          <input type="email" name="email" class="form-control" required />
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Teléfono</label>
+          <input type="text" name="phone" class="form-control" required />
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Dirección de entrega</label>
+          <input type="text" name="address" class="form-control" required />
+        </div>
 
-<div id="ck-grid" class="row g-3" style="display:none;">
-  <!-- Formulario -->
-  <section class="col-lg-8">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h2 class="h5 mb-3">Datos de envío</h2>
-        <form id="ck-form" class="ck-form" novalidate>
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Nombre y Apellidos</label>
-              <input type="text" name="fullname" class="form-control" required />
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Email</label>
-              <input type="email" name="email" class="form-control" required />
-            </div>
-          </div>
+        <!-- Opcionales: tu tabla tiene city y zip; si no quieres mostrarlos, se enviarán vacíos -->
+        <div class="col-md-6">
+          <label class="form-label">Ciudad (opcional)</label>
+          <input type="text" name="city" class="form-control" />
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Código postal (opcional)</label>
+          <input type="text" name="zip" class="form-control" />
+        </div>
 
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Teléfono</label>
-              <input type="tel" name="phone" class="form-control" required />
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Documento (opcional)</label>
-              <input type="text" name="doc" class="form-control" />
-            </div>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label">Dirección</label>
-            <input type="text" name="address" class="form-control" required placeholder="Calle, número, piso" />
-          </div>
-
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Ciudad</label>
-              <input type="text" name="city" class="form-control" required />
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Código Postal</label>
-              <input type="text" name="zip" class="form-control" required />
-            </div>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label">Notas para el repartidor (opcional)</label>
-            <textarea name="notes" rows="3" class="form-control"></textarea>
-          </div>
-
-          <h3 class="h6 mt-4">Método de pago</h3>
-          <div class="d-flex gap-3 mb-3">
-            <label class="form-check"><input class="form-check-input" type="radio" name="pay" value="tarjeta" checked> Tarjeta</label>
-            <label class="form-check"><input class="form-check-input" type="radio" name="pay" value="transferencia"> Transferencia</label>
-            <label class="form-check"><input class="form-check-input" type="radio" name="pay" value="contraentrega"> Contraentrega</label>
-          </div>
-
-          <button class="btn btn-primary" type="submit">Confirmar pedido</button>
-        </form>
-      </div>
-    </div>
-  </section>
-
-  <!-- Resumen -->
-  <aside class="col-lg-4">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h2 class="h5 mb-3">Resumen</h2>
-        <ul id="ck-list" class="list-unstyled"></ul>
-        <hr />
-        <div class="ck-totals">
-          <div class="d-flex justify-content-between">
-            <span class="text-muted">Subtotal</span><span id="ck-subtotal">€ 0,00</span>
-          </div>
-          <div class="d-flex justify-content-between">
-            <span class="text-muted">Envío</span><span id="ck-shipping">Gratis</span>
-          </div>
-          <div class="d-flex justify-content-between fs-5 mt-2">
-            <strong>Total</strong><strong id="ck-total">€ 0,00</strong>
-          </div>
+        <div class="col-12">
+          <label class="form-label">Notas (opcional)</label>
+          <textarea name="notes" rows="3" class="form-control" placeholder="Horario preferido, referencias, piso/puerta, etc."></textarea>
         </div>
       </div>
+
+      <div class="d-flex justify-content-between align-items-center mt-4">
+        <a class="btn btn-outline-secondary" href="<?= $BASE ?>/public/carrito.php">← Volver al carrito</a>
+        <button type="submit" class="btn btn-primary">Confirmar pedido</button>
+      </div>
     </div>
-  </aside>
-</div>
+  </form>
+
+  <div class="alert alert-info mt-3" role="alert">
+    No realizamos cobros online. Registramos tu pedido y <strong>te contactamos para confirmar la entrega a domicilio</strong>.
+  </div>
+</main>
 
 <script>
 (function(){
   const BASE = <?= json_encode($BASE) ?>;
-  const IMG_UPLOADS = BASE + "/uploads/";
-  const IMG_IMAGES  = BASE + "/images/";
-  const PLACEHOLDER = IMG_IMAGES + "placeholder.jpg";
 
-  const $empty = document.getElementById("ck-empty");
-  const $grid  = document.getElementById("ck-grid");
-  const $list  = document.getElementById("ck-list");
-  const $subtotal = document.getElementById("ck-subtotal");
-  const $total = document.getElementById("ck-total");
-  const $cartCount = document.getElementById("cart-count");
-  const $form = document.getElementById("ck-form");
+  function getCartItems(){ try { return JSON.parse(localStorage.getItem('cart') || '[]'); } catch { return []; } }
 
-  // Utils carrito
-  function getCart(){ try { return JSON.parse(localStorage.getItem("cart") || "[]"); } catch { return []; } }
-  function setCart(c){ localStorage.setItem("cart", JSON.stringify(c)); refreshCartBadge(); }
-  function cartCount(){ return getCart().reduce((a,i)=>a+(Number(i.qty)||0),0); }
-  function money(n){ try { return new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR'}).format(n); } catch { return "€ " + Number(n).toFixed(2); } }
-  function refreshCartBadge(){ if ($cartCount) $cartCount.textContent = String(cartCount()); }
-
-  function createImg(fname, altText){
-    const img = document.createElement('img');
-    img.alt = altText || '';
-    const clean = (fname||'').trim();
-    if (!clean) { img.src = PLACEHOLDER; return img; }
-    img.src = IMG_UPLOADS + clean;               // 1) uploads
-    img.onerror = function step1(){
-      img.onerror = function step2(){
-        img.onerror = null;
-        img.src = PLACEHOLDER;                   // 3) placeholder
-      };
-      img.src = IMG_IMAGES + clean;              // 2) images
-    };
-    img.className = "me-2";
-    img.style.width = "48px";
-    img.style.height = "48px";
-    img.style.objectFit = "cover";
-    img.style.borderRadius = "8px";
-    return img;
+  // Normaliza items para que coincidan con la API/BD
+  function normalizeItems(items){
+    return items.map(it => ({
+      product_id: Number(it.product_id ?? it.id ?? 0),
+      name: String(it.name ?? ''),
+      qty: Math.max(1, Number(it.qty ?? 1)),
+      price: Number(it.price ?? 0)
+    })).filter(x => x.product_id > 0 && x.qty > 0);
   }
 
-  function render(){
-    const cart = getCart();
-    if (!cart.length){
-      $empty.style.display = "block";
-      $grid.style.display = "none";
-      refreshCartBadge();
+  const form = document.getElementById('checkout-form');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const items = normalizeItems(getCartItems());
+    if (!items.length){
+      alert('Tu carrito está vacío.');
+      window.location.href = BASE + '/public/carrito.php';
       return;
     }
-    $empty.style.display = "none";
-    $grid.style.display = "flex";
-    refreshCartBadge();
 
-    // Lista resumen
-    $list.innerHTML = "";
-    let subtotal = 0;
-    cart.forEach(p => {
-      const price = Number(p.price) || 0;
-      const qty = Number(p.qty) || 1;
-      subtotal += price * qty;
+    const fd = new FormData(form);
+    const payload = {
+      name:    (fd.get('name')    || '').trim(),
+      email:   (fd.get('email')   || '').trim(),
+      phone:   (fd.get('phone')   || '').trim(),
+      address: (fd.get('address') || '').trim(),
+      city:    (fd.get('city')    || '').trim(),
+      zip:     (fd.get('zip')     || '').trim(),
+      notes:   (fd.get('notes')   || '').trim(),
+      items
+    };
 
-      const li = document.createElement("li");
-      li.className = "d-flex align-items-center justify-content-between mb-2";
+    if (!payload.name || !payload.email || !payload.address){
+      alert('Por favor completa nombre, email y dirección.');
+      return;
+    }
 
-      const left = document.createElement("div");
-      left.className = "d-flex align-items-center";
+    try {
+      const res = await fetch(BASE + '/api/checkout_create.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
 
-      const img = createImg(p.image, p.name || '');
-      left.appendChild(img);
-
-      const info = document.createElement("div");
-      info.innerHTML = `<div class="fw-semibold">${p.name || ''}</div><div class="text-muted small">x${qty}</div>`;
-      left.appendChild(info);
-
-      const right = document.createElement("div");
-      right.textContent = money(price * qty);
-
-      li.appendChild(left);
-      li.appendChild(right);
-      $list.appendChild(li);
-    });
-
-    $subtotal.textContent = money(subtotal);
-    $total.textContent = money(subtotal); // sin envío/impuestos por ahora
-  }
-
-  async function postJSON(url, payload){
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const json = await res.json().catch(()=>({}));
-    if (!res.ok || !json.ok) throw new Error(json.error || ('HTTP ' + res.status));
-    return json;
-  }
-
-  // Enviar (REAL a la API)
-  if ($form) {
-    $form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const data = Object.fromEntries(new FormData($form).entries());
-      const required = ["fullname", "email", "phone", "address", "city", "zip"];
-      for (const k of required) {
-        if (!String(data[k]||"").trim()) {
-          alert("Completa todos los campos obligatorios.");
-          return;
-        }
+      let data;
+      try { data = await res.json(); } catch {
+        const t = await res.text();
+        console.error('Respuesta no JSON:', t);
+        throw new Error('Respuesta inválida del servidor');
       }
 
-      const items = (getCart()||[]).map(it => ({ id: it.id, qty: Number(it.qty)||1 }));
-      if (!items.length) { alert("Tu carrito está vacío."); return; }
-
-      try {
-        const payload = {
-          customer: {
-            fullname: data.fullname,
-            email: data.email,
-            phone: data.phone,
-            doc: data.doc || '',
-            address: data.address,
-            city: data.city,
-            zip: data.zip,
-            notes: data.notes || ''
-          },
-          items
-        };
-
-        const res = await postJSON(BASE + "/api/checkout_create.php", payload);
-        setCart([]);                                  // limpia carrito
-        alert("¡Pedido confirmado! Nº " + res.order_id);
-        window.location.href = BASE + "/public/catalogo.php";
-      } catch (err) {
-        alert("No se pudo crear el pedido: " + (err.message || err));
+      if (!res.ok || !data.ok){
+        console.error('Checkout error:', {status: res.status, data});
+        throw new Error(data.error || 'No se pudo registrar el pedido');
       }
-    });
-  }
 
-  window.addEventListener("storage", (ev) => {
-    if (ev.key === "cart") render();
+      // Vaciar carrito y redirigir (ojo: NO concatenar window.location.origin con BASE)
+      localStorage.removeItem('cart');
+      window.location.href = BASE + '/public/gracias.php?order=' + encodeURIComponent(String(data.order_id));
+
+    } catch (err) {
+      console.error(err);
+      alert('Ocurrió un error al confirmar el pedido. Intenta nuevamente en unos segundos.');
+    }
   });
-
-  render();
 })();
 </script>
 
-<?php include __DIR__ . '/../templates/footer.php'; ?>
+<?php require_once __DIR__ . '/../templates/footer.php'; ?>

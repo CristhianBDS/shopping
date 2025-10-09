@@ -21,10 +21,19 @@ RewriteRule ^inc/ - [F,L]
 # Bloquea directorios típicos si existieran
 RewriteRule ^(vendor|node_modules)/ - [F,L]
 
-# -------------------------------
-# Seguridad: bloquear ciertos files
-# -------------------------------
-# Archivos de entorno, backups, y configs que no deben servirse
+# -----------------------------------
+# 🔒 Blindaje extra: nunca servir PHP desde /uploads
+# -----------------------------------
+# Defensa en profundidad: evita ejecución o lectura de scripts
+<IfModule mod_rewrite.c>
+  RewriteCond %{REQUEST_URI} ^/shopping/uploads/ [NC]
+  RewriteRule .*\.(php|phtml|php\d+|phar|pht)$ - [F,L]
+</IfModule>
+
+# -----------------------------------
+# Seguridad: bloquear ciertos archivos
+# -----------------------------------
+# Archivos de entorno, backups y configuraciones sensibles
 <FilesMatch "\.(env|ini|log|sql|yml|yaml|lock|bak|old|dist)$">
   Require all denied
 </FilesMatch>

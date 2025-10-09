@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/bootstrap.php';
+require_once __DIR__ . '/../config/db.php';   // <- necesario para getConnection()
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/flash.php';
 
 $CONTEXT = 'admin';
-// Antes: requireLogin();
 require_admin();
 
 $PAGE_TITLE = 'Productos';
@@ -60,8 +60,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 /* ==============================
    Filtros y paginación
    ============================== */
-$q       = trim($_GET['q'] ?? '');
-$estado  = ($_GET['estado'] ?? 'all');          // all | 1 | 0
+/* ==============================
+   Filtros y paginación
+   ============================== */
+$q       = trim((string)($_GET['q'] ?? ''));
+$estado  = isset($_GET['estado']) ? (string)$_GET['estado'] : 'all'; // all | 1 | 0
 $page    = max(1, (int)($_GET['page'] ?? 1));
 $per     = 10;
 $offset  = ($page - 1) * $per;

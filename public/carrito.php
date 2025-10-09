@@ -1,5 +1,5 @@
 <?php
-// public/carrito.php — Carrito de compra (público)
+// public/carrito.php — Carrito de compra (público) — versión sin referencias a pago
 require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/bootstrap.php';
 
@@ -49,7 +49,8 @@ include __DIR__ . '/../templates/header.php';
         </div>
         <div class="d-flex justify-content-between mb-2">
           <span class="text-muted">Envío</span>
-          <span id="shipping">A calcular</span>
+          <!-- Nota: sin cálculo ni método de pago -->
+          <span id="shipping">Se coordina al confirmar</span>
         </div>
         <hr>
         <div class="d-flex justify-content-between align-items-center">
@@ -58,6 +59,7 @@ include __DIR__ . '/../templates/header.php';
         </div>
         <div class="d-flex gap-2 mt-3">
           <button id="clear" class="btn btn-outline-secondary">Vaciar</button>
+          <!-- Mantener solo el flujo de finalizar compra (sin método de pago) -->
           <a class="btn btn-primary" href="<?= $BASE ?>/public/checkout.php">Finalizar compra</a>
         </div>
       </div>

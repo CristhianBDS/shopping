@@ -22,6 +22,7 @@ $active = function(string $file) use ($path): string {
         <li class="nav-item"><a class="nav-link<?= $active('index.php') ?>" href="<?= $BASE ?>/admin/index.php">Dashboard</a></li>
         <li class="nav-item"><a class="nav-link<?= $active('pedidos.php') ?>" href="<?= $BASE ?>/admin/pedidos.php">Pedidos</a></li>
         <li class="nav-item"><a class="nav-link<?= $active('productos.php') ?>" href="<?= $BASE ?>/admin/productos.php">Productos</a></li>
+        <li class="nav-item"><a class="nav-link<?= $active('configuracion.php') ?>" href="<?= $BASE ?>/admin/configuracion.php">Configuración</a></li>
       </ul>
 
       <div class="d-flex gap-2 align-items-center">
