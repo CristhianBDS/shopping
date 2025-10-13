@@ -24,9 +24,8 @@ $active = function(string $file) use ($path): string {
         <li class="nav-item"><a class="nav-link<?= $active('index.php') ?>" href="<?= $BASE ?>/admin/index.php">Dashboard</a></li>
         <li class="nav-item"><a class="nav-link<?= $active('pedidos.php') ?>" href="<?= $BASE ?>/admin/pedidos.php">Pedidos</a></li>
         <li class="nav-item"><a class="nav-link<?= $active('productos.php') ?>" href="<?= $BASE ?>/admin/productos.php">Productos</a></li>
-        <?php if (can('usuarios:list')): ?>
-          <li class="nav-item"><a class="nav-link<?= $active('usuarios.php') ?>" href="<?= $BASE ?>/admin/usuarios.php">Usuarios</a></li>
-        <?php endif; ?>
+        <li class="nav-item"><a class="nav-link<?= $active('usuarios.php') ?>" href="<?= $BASE ?>/admin/usuarios.php">Usuarios</a></li>
+        <li class="nav-item"><a class="nav-link<?= $active('calendario.php') ?>" href="<?= $BASE ?>/admin/calendario.php">Calendario</a></li>
         <li class="nav-item"><a class="nav-link<?= $active('configuracion.php') ?>" href="<?= $BASE ?>/admin/configuracion.php">Configuración</a></li>
       </ul>
 

@@ -17,6 +17,7 @@ if (file_exists($settingsPath)) {
   require_once $settingsPath;
   $SHOP_NAME = setting_get('shop_name', 'Mi Tienda');
 }
+
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -42,6 +43,6 @@ if (file_exists($settingsPath)) {
   }
 ?>
 <main class="container py-4">
-  <?php if ($CONTEXT === 'admin' && function_exists('flash_render')): ?>
+  <?php if (function_exists('flash_render')): ?>
     <?php flash_render(); ?>
   <?php endif; ?>

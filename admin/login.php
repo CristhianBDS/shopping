@@ -1,6 +1,5 @@
 <?php
 // admin/login.php — Acceso al panel administrador
-
 require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/db.php';
@@ -56,18 +55,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $st->execute([$email]);
       $row = $st->fetch(PDO::FETCH_ASSOC);
 
-      // Verificación de usuario activo y contraseña hasheada
       if (
         $row &&
         (int)($row['is_active'] ?? 0) === 1 &&
         password_verify($password, (string)$row['password_hash'])
       ) {
-        // Regenerar sesión por seguridad
-        if (function_exists('session_regenerate_id')) {
-          session_regenerate_id(true);
-        }
+        if (function_exists('session_regenerate_id')) session_regenerate_id(true);
 
-        // Guardar usuario en sesión
         $_SESSION['user'] = [
           'id'    => (int)$row['id'],
           'name'  => (string)($row['name'] ?? 'Admin'),
@@ -75,7 +69,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           'role'  => (string)($row['role'] ?? 'admin'),
         ];
 
-        // Redirección después de login
         $dest = $_SESSION['redirect_after_login'] ?? ($BASE . '/admin/index.php');
         unset($_SESSION['csrf_login'], $_SESSION['redirect_after_login']);
         header('Location: ' . $dest);
@@ -94,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 include __DIR__ . '/../templates/header.php';
 ?>
-<main class="container py-5" style="max-width:560px;">
+<div class="form-container">
   <div class="card shadow-sm">
     <div class="card-body">
       <h1 class="h4 mb-3 text-center">Acceso administrador</h1>
@@ -126,6 +119,5 @@ include __DIR__ . '/../templates/header.php';
       </form>
     </div>
   </div>
-</main>
-
+</div>
 <?php include __DIR__ . '/../templates/footer.php'; ?>

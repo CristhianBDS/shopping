@@ -64,3 +64,293 @@ th,td { padding:.6rem .4rem; border-bottom:1px solid #f0f0f0; vertical-align:mid
   .checkout-grid { grid-template-columns: 1fr; }
   .ck-form .row-2 { grid-template-columns: 1fr; }
 }
+/* ===========================================================
+   🧩 ESTILOS GENERALES DE FORMULARIOS, LOGIN Y REGISTRO
+   =========================================================== */
+
+/* Contenedor base para formularios */
+.form-container {
+  max-width: 600px;
+  margin: 2rem auto;
+  background-color: #fff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Versión más compacta para login */
+.form-auth {
+  max-width: 460px;
+  margin: 2rem auto;
+  background-color: #fff;
+  padding: 1.5rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Inputs y selects */
+.form-container input,
+.form-container select,
+.form-container textarea,
+.form-auth input {
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  padding: 0.55rem 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.form-container input:focus,
+.form-container select:focus,
+.form-auth input:focus {
+  border-color: #0066FF;
+  box-shadow: 0 0 0 2px rgba(0, 102, 255, 0.25);
+  outline: none;
+}
+
+/* Botones */
+.btn {
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background-color: #0066FF;
+  border-color: #0066FF;
+}
+
+.btn-primary:hover {
+  background-color: #0052cc;
+  border-color: #004bb5;
+}
+
+.btn-outline-primary {
+  color: #0066FF;
+  border-color: #0066FF;
+}
+
+.btn-outline-primary:hover {
+  background-color: #0066FF;
+  color: #fff;
+}
+
+/* ===========================================================
+   👤 BOTÓN DE CUENTA (PUBLIC NAV)
+   =========================================================== */
+.btn-account {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 50px;
+  padding: 0.45rem 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-account .icon-account {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+/* Hover visual más agradable */
+.btn-account:hover {
+  transform: translateY(-1px);
+  background-color: rgba(0, 102, 255, 0.1);
+}
+
+/* ===========================================================
+   ⚠️ ALERTAS Y FLASH MESSAGES
+   =========================================================== */
+.flash-container {
+  margin: 1rem auto;
+  max-width: 600px;
+}
+
+.flash-container .alert {
+  border-radius: 6px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* ===========================================================
+   🧱 UTILIDADES ESTÉTICAS
+   =========================================================== */
+h1.h4, h2.h4 {
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+  text-align: center;
+  color: #003399;
+}
+
+p.text-muted {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.form-check-label a {
+  text-decoration: underline;
+  color: #0066FF;
+}
+
+.form-check-label a:hover {
+  color: #004bb5;
+}
+
+/* ===========================================================
+   ✨ BOTONES ESPECIALES (acciones y navegación)
+   =========================================================== */
+.btn-outline-secondary:hover {
+  background-color: #f3f5ff;
+  border-color: #0066FF;
+  color: #0066FF;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+/* ===========================================================
+   🧭 DASHBOARD ADMIN
+   =========================================================== */
+
+.dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.dash-card {
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  transition: transform 0.2s ease;
+}
+
+.dash-card:hover {
+  transform: translateY(-3px);
+}
+
+.dash-card h2 {
+  font-weight: 700;
+  color: #0066FF;
+}
+
+.card-title {
+  font-weight: 600;
+}
+/* Calendario admin */
+#adminCalendar, #calendarMini {
+  --fc-border-color: #e9ecef;
+  --fc-event-bg-color: #0066FF;
+  --fc-event-border-color: #0066FF;
+}
+/* ===========================
+   Variables de color y tipografía
+   =========================== */
+:root {
+  --primary: #0066FF;
+  --primary-600: #0052cc;
+  --primary-700: #004bb5;
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --text: #1d1f23;
+  --muted: #6c757d;
+  --border: #e9ecef;
+  --shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+[data-theme="dark"] {
+  --primary: #66a3ff;
+  --primary-600: #4a8dff;
+  --primary-700: #3a74d9;
+  --bg: #0f1115;
+  --surface: #171a21;
+  --text: #eaeef5;
+  --muted: #9aa4b2;
+  --border: #2a2f3a;
+  --shadow: 0 1px 6px rgba(0,0,0,0.45);
+}
+
+/* ===========================
+   Reseteos suaves y base
+   =========================== */
+html, body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.card {
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+
+.table {
+  color: var(--text);
+}
+.table thead th {
+  border-bottom-color: var(--border);
+}
+.table td, .table th {
+  border-color: var(--border);
+}
+
+/* Navbar admin en dark */
+.navbar.bg-dark {
+  background-color: #12151b !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+/* Botones principales */
+.btn-primary {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+.btn-primary:hover {
+  background-color: var(--primary-600);
+  border-color: var(--primary-700);
+}
+.btn-outline-primary {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+.btn-outline-primary:hover {
+  background-color: var(--primary);
+  color: #fff;
+}
+
+/* Dashboard cards */
+.dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.dash-card {
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--surface) 0%, rgba(0,0,0,0.02) 100%);
+  box-shadow: var(--shadow);
+  transition: transform .2s ease;
+}
+.dash-card:hover { transform: translateY(-2px); }
+.dash-card h2 { color: var(--primary); }
+
+/* Flash messages */
+.flash-container .alert {
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+/* Calendario (FullCalendar) */
+#adminCalendar, #calendarMini {
+  --fc-border-color: var(--border);
+  --fc-event-bg-color: var(--primary);
+  --fc-event-border-color: var(--primary);
+}
+[data-theme="dark"] .fc .fc-toolbar-title { color: var(--text); }
+
+/* Contenedor del gráfico (alto controlado por CSS) */
+.chart-container { position: relative; height: 280px; width: 100%; }
+.chart-container > canvas { width: 100% !important; height: 100% !important; display: block; }

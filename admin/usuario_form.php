@@ -62,7 +62,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $errors[] = 'Las contraseñas no coinciden.';
   }
 
-  // Email único
   $chk = $pdo->prepare('SELECT id FROM users WHERE email = ? AND id <> ? LIMIT 1');
   $chk->execute([$email, $id]);
   if ($chk->fetch()) {
@@ -98,7 +97,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 include __DIR__ . '/../templates/header.php';
-
 ?>
 
 <h1 class="h4 mb-3"><?= $edit ? 'Editar usuario' : 'Nuevo usuario' ?></h1>
@@ -109,7 +107,7 @@ include __DIR__ . '/../templates/header.php';
   </div>
 <?php endif; ?>
 
-<form method="post" autocomplete="off" novalidate style="max-width:760px;">
+<form method="post" class="form-container" autocomplete="off" novalidate>
   <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
 
   <div class="mb-3">
