@@ -1,35 +1,35 @@
 <?php
-// admin/login.php — Acceso al panel
+// admin/login.php — Acceso al panel administrador
+
 require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../config/app.php';
-require_once __DIR__ . '/../config/db.php';   // <- necesario para getConnection()
+require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../inc/flash.php';
 require_once __DIR__ . '/../inc/auth.php';
 
 $CONTEXT    = 'admin';
 $PAGE_TITLE = 'Acceso admin';
+$BASE       = defined('BASE_URL') ? BASE_URL : '/shopping';
 
-$BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
-
-// Si ya está logueado, redirige al dashboard
+// Si ya está logueado como admin, redirige al panel principal
 if (!empty($_SESSION['user']) && ($_SESSION['user']['role'] ?? '') === 'admin') {
   header('Location: ' . $BASE . '/admin/index.php');
   exit;
 }
 
-// Mensaje si viene de logout
+// Si viene desde logout, muestra mensaje
 if (isset($_GET['bye'])) {
   flash_info('Sesión cerrada correctamente.');
 }
 
-// CSRF simple para el form
+// CSRF simple para el formulario
 if (empty($_SESSION['csrf_login'])) {
   $_SESSION['csrf_login'] = bin2hex(random_bytes(32));
 }
 $csrf = $_SESSION['csrf_login'];
 
 $errors = [];
-$email = '';
+$email  = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $token = $_POST['csrf'] ?? '';
@@ -47,15 +47,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if (!$errors) {
     try {
       $pdo = getConnection();
-      $st  = $pdo->prepare('SELECT id, name, email, password, role FROM users WHERE email = ? LIMIT 1');
+      $st  = $pdo->prepare('
+        SELECT id, name, email, role, is_active, password_hash
+        FROM users
+        WHERE email = ?
+        LIMIT 1
+      ');
       $st->execute([$email]);
       $row = $st->fetch(PDO::FETCH_ASSOC);
 
-      // Asumimos password hasheado con password_hash(); si no, adapta aquí.
-      if ($row && password_verify($password, (string)$row['password'])) {
-        // Sesión fuerte
-        if (function_exists('session_regenerate_id')) session_regenerate_id(true);
+      // Verificación de usuario activo y contraseña hasheada
+      if (
+        $row &&
+        (int)($row['is_active'] ?? 0) === 1 &&
+        password_verify($password, (string)$row['password_hash'])
+      ) {
+        // Regenerar sesión por seguridad
+        if (function_exists('session_regenerate_id')) {
+          session_regenerate_id(true);
+        }
 
+        // Guardar usuario en sesión
         $_SESSION['user'] = [
           'id'    => (int)$row['id'],
           'name'  => (string)($row['name'] ?? 'Admin'),
@@ -63,17 +75,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           'role'  => (string)($row['role'] ?? 'admin'),
         ];
 
-        // Redirección post-login
+        // Redirección después de login
         $dest = $_SESSION['redirect_after_login'] ?? ($BASE . '/admin/index.php');
         unset($_SESSION['csrf_login'], $_SESSION['redirect_after_login']);
         header('Location: ' . $dest);
         exit;
       } else {
-        $errors[] = 'Credenciales inválidas.';
+        $errors[] = 'Credenciales inválidas o usuario inactivo.';
       }
     } catch (Throwable $e) {
       $errors[] = 'Error al validar el acceso.';
-      if (defined('DEBUG') && DEBUG) { $errors[] = $e->getMessage(); }
+      if (defined('DEBUG') && DEBUG) {
+        $errors[] = $e->getMessage();
+      }
     }
   }
 }
@@ -83,11 +97,15 @@ include __DIR__ . '/../templates/header.php';
 <main class="container py-5" style="max-width:560px;">
   <div class="card shadow-sm">
     <div class="card-body">
-      <h1 class="h4 mb-3">Acceso administrador</h1>
+      <h1 class="h4 mb-3 text-center">Acceso administrador</h1>
 
       <?php if ($errors): ?>
         <div class="alert alert-danger">
-          <ul class="mb-0"><?php foreach ($errors as $e): ?><li><?= htmlspecialchars($e) ?></li><?php endforeach; ?></ul>
+          <ul class="mb-0">
+            <?php foreach ($errors as $e): ?>
+              <li><?= htmlspecialchars($e) ?></li>
+            <?php endforeach; ?>
+          </ul>
         </div>
       <?php endif; ?>
 
@@ -109,4 +127,5 @@ include __DIR__ . '/../templates/header.php';
     </div>
   </div>
 </main>
+
 <?php include __DIR__ . '/../templates/footer.php'; ?>

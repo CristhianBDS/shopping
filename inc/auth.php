@@ -30,17 +30,13 @@ function is_admin(): bool {
  * Exige login; si no hay, guarda a dónde quería ir y redirige a login.
  */
 function require_login(): void {
-  $base = defined('BASE_URL') ? BASE_URL : '/shopping';
+  $base = defined('BASE_URL') ? BASE_URL : 'http://localhost/shopping';
 
   if (!is_logged_in()) {
-    // Guardar destino para después del login
     $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'] ?? ($base . '/admin/index.php');
-
-    // Mensaje (si hay sistema de flashes cargado)
     if (function_exists('flash_info')) {
       flash_info('Por favor, inicia sesión para continuar.');
     }
-
     header('Location: ' . $base . '/admin/login.php');
     exit;
   }
@@ -50,7 +46,7 @@ function require_login(): void {
  * Exige rol admin; si no cumple, manda a login (si no está logueado) o al dashboard.
  */
 function require_admin(): void {
-  $base = defined('BASE_URL') ? BASE_URL : '/shopping';
+  $base = defined('BASE_URL') ? BASE_URL : 'http://localhost/shopping';
 
   if (!is_logged_in()) {
     $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'] ?? ($base . '/admin/index.php');
@@ -68,6 +64,43 @@ function require_admin(): void {
     header('Location: ' . $base . '/admin/index.php');
     exit;
   }
+}
+
+/**
+ * Helpers de autorización (roles/permisos simples)
+ * Con tu esquema actual: role ENUM('admin','user')
+ */
+function current_user_role(): string {
+  return $_SESSION['user']['role'] ?? 'user';
+}
+
+/** require_role: compara jerarquía simple */
+function require_role(string $roleMin = 'admin'): void {
+  require_login();
+  $order = ['user' => 1, 'admin' => 2];
+  $have  = $order[current_user_role()] ?? 0;
+  $need  = $order[$roleMin] ?? PHP_INT_MAX;
+  if ($have < $need) {
+    if (function_exists('flash_error')) {
+      flash_error('Acceso no autorizado.');
+    }
+    $base = defined('BASE_URL') ? BASE_URL : 'http://localhost/shopping';
+    header('Location: ' . $base . '/admin/index.php');
+    exit;
+  }
+}
+
+/** can(): matriz de permisos */
+function can(string $perm): bool {
+  $role = current_user_role();
+  $map = [
+    'usuarios:list'   => ['admin','user'],
+    'usuarios:view'   => ['admin','user'],
+    'usuarios:create' => ['admin'],
+    'usuarios:edit'   => ['admin'],
+    'usuarios:state'  => ['admin'], // activar/desactivar
+  ];
+  return in_array($role, $map[$perm] ?? [], true);
 }
 
 /* -----------------------------------------------------------
