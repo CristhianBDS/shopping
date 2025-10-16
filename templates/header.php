@@ -17,7 +17,6 @@ if (file_exists($settingsPath)) {
   require_once $settingsPath;
   $SHOP_NAME = setting_get('shop_name', 'Mi Tienda');
 }
-
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -26,14 +25,15 @@ if (file_exists($settingsPath)) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?= htmlspecialchars($PAGE_TITLE ?: $SHOP_NAME) ?></title>
 
-  <!-- CSS del proyecto -->
+  <!-- Bootstrap 5 CSS (primero) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+
+  <!-- CSS del proyecto (después de Bootstrap para poder sobrescribir) -->
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/base.css">
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/tienda.css">
-
-  <!-- Bootstrap 5 CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 </head>
-<body>
+<!-- Añadimos la clase para aplicar padding-top y evitar que el nav fijo tape el contenido -->
+<body class="has-fixed-nav">
 <?php
   // Navegación según contexto
   if ($CONTEXT === 'admin') {
@@ -42,7 +42,7 @@ if (file_exists($settingsPath)) {
     include __DIR__ . '/nav_public.php';
   }
 ?>
-<main class="container py-4">
+<main class="container pt-2 pb-4">
   <?php if (function_exists('flash_render')): ?>
     <?php flash_render(); ?>
   <?php endif; ?>

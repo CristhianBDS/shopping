@@ -23,7 +23,9 @@
 .product-title { font-size:1.6rem; font-weight:700; margin:.2rem 0 .6rem; }
 .product-price { font-size:1.4rem; font-weight:700; margin:.8rem 0; }
 .qty { width:80px; padding:.4rem .5rem; border:1px solid #e5e7eb; border-radius:8px; }
-.row { display:flex; gap:.75rem; align-items:center; margin-top:1rem; }
+/* NUEVA clase local (opcional para detalle) */
+.product-row {display:flex;gap:.75rem;align-items:center;margin-top:1rem;}
+
 @media(max-width:860px){ .product-wrap{ grid-template-columns:1fr; } }
 
 /* Botón carrito flotante en detalle */
@@ -354,3 +356,138 @@ html, body {
 /* Contenedor del gráfico (alto controlado por CSS) */
 .chart-container { position: relative; height: 280px; width: 100%; }
 .chart-container > canvas { width: 100% !important; height: 100% !important; display: block; }
+
+
+/* ===== Home público (index) ===== */
+/* Marco base de TODOS los carruseles */
+.carousel-frame {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 18px rgba(0,0,0,.08);
+}
+
+/* El contenedor, el item y la imagen ocupan el 100% de la altura del marco */
+.carousel-frame .carousel-inner,
+.carousel-frame .carousel-item,
+.carousel-frame .carousel-item img {
+  height: 100%;
+}
+
+/* Las imágenes cubren sin deformar, centradas */
+.carousel-frame .carousel-item img {
+  width: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center center;
+}
+
+/* ===== Alturas por contexto ===== */
+
+/* HERO grande */
+.home-hero .carousel-frame {
+  height: 54vh;         /* adaptable a viewport */
+  max-height: 520px;    /* tope desktop */
+  min-height: 320px;    /* evita quedar muy bajo */
+}
+@media (max-width: 576px) {
+  .home-hero .carousel-frame {
+    height: 46vh;
+    min-height: 260px;
+  }
+}
+
+/* Carrusel de la pantalla 2 (izquierda) */
+.home-section .carousel-frame:not(.small) {
+  height: 380px;
+}
+@media (max-width: 992px) {
+  .home-section .carousel-frame:not(.small) {
+    height: 300px;
+  }
+}
+
+/* Tres carruseles pequeños en fila */
+.carousel-frame.small {
+  height: 240px;
+}
+@media (min-width: 992px) {
+  .carousel-frame.small {
+    height: 280px;
+  }
+}
+
+/* Opcional: suaviza transición de altura si algún slider cambia de tamaño */
+.carousel .carousel-item {
+  transition: transform .6s ease-in-out, opacity .6s ease-in-out;
+}
+/* ===== NAVBAR FIJA AL HACER SCROLL ===== */
+/* ✔️ Navbar fija: respeta Bootstrap y ajusta estilos */
+:root {
+  --nav-h-mobile: 70px;   /* ajusta si tu nav es más alta */
+  --nav-h-desktop: 88px;  /* ajusta si hace falta */
+}
+
+body.has-fixed-nav {
+  padding-top: var(--nav-h-mobile);
+}
+@media (min-width: 992px) {
+  body.has-fixed-nav { padding-top: var(--nav-h-desktop); }
+}
+
+/* Solo estética/borde/sombra; NO tocar position */
+.navbar.fixed-top {
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+/* ===== NAVBAR FIJA: espacio para que no tape el contenido ===== */
+:root {
+  --nav-h-mobile: 64px;   /* alto aprox. en móviles */
+  --nav-h-desktop: 76px;  /* alto aprox. en desktop */
+}
+
+body.has-fixed-nav {
+  padding-top: var(--nav-h-mobile);
+}
+
+@media (min-width: 992px) {
+  body.has-fixed-nav {
+    padding-top: var(--nav-h-desktop);
+  }
+}
+
+/* Estética del nav fijo (opcional) */
+.navbar.fixed-top {
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+/* Texto bajo cada carrusel (compatibilidad con ambas clases) */
+.info-box,
+.text-info-box {
+  max-width: 520px;
+  text-align: left;
+  margin-inline: auto; /* centrado horizontal en mobile */
+}
+.info-box h3,
+.text-info-box .h5,
+.info-box .h5 {
+  font-weight: 600;
+}
+.info-box p,
+.text-info-box p {
+  margin-bottom: .8rem;
+}
+
+/* Fondo suave para diferenciar la sección */
+.section-alt { background: #fafafa; }
+
+/* Altura de carruseles de la sección 2 (sin depender de 'media-row') */
+.section-alt .carousel-frame { height: 340px; }
+@media (max-width: 992px) {
+  .section-alt .carousel-frame { height: 280px; }
+}
+
+/* (BORRAR) .feature-block y cualquier regla .media-row si no la usas */
