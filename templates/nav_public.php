@@ -12,7 +12,7 @@ $active = function(string $file) use ($path): string {
 $isUser = !empty($_SESSION['user']) && (($_SESSION['user']['role'] ?? 'user') === 'user');
 $userName = $isUser ? ($_SESSION['user']['name'] ?? 'Cliente') : null;
 ?>
-<nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
+<nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom fixed-top">
   <div class="container">
     <a class="navbar-brand fw-bold" href="<?= $BASE ?>/public/index.php">Tienda</a>
 
