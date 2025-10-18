@@ -23,21 +23,21 @@ include __DIR__ . '/../templates/header.php';
 
       <div class="carousel-inner">
         <div class="carousel-item active"
-             data-title="Producto Estrella 1"
-             data-text="Calidad y diseño para tu día a día."
-             data-url="<?= $BASE ?>/public/producto.php?id=1">
+          data-title="Producto Estrella 1"
+          data-text="Calidad y diseño para tu día a día."
+          data-url="<?= $BASE ?>/public/producto.php?id=1">
           <img src="<?= $BASE ?>/images/zapatillas-urban.jpg" class="d-block w-100" alt="Producto 1">
         </div>
         <div class="carousel-item"
-             data-title="Producto Estrella 2"
-             data-text="Novedad de temporada con envío 24/48h."
-             data-url="<?= $BASE ?>/public/producto.php?id=2">
+          data-title="Producto Estrella 2"
+          data-text="Novedad de temporada con envío 24/48h."
+          data-url="<?= $BASE ?>/public/producto.php?id=2">
           <img src="<?= $BASE ?>/images/camiseta-basica.jpg" class="d-block w-100" alt="Producto 2" loading="lazy">
         </div>
         <div class="carousel-item"
-             data-title="Producto Estrella 3"
-             data-text="Edición limitada, stock reducido."
-             data-url="<?= $BASE ?>/public/producto.php?id=3">
+          data-title="Producto Estrella 3"
+          data-text="Edición limitada, stock reducido."
+          data-url="<?= $BASE ?>/public/producto.php?id=3">
           <img src="<?= $BASE ?>/images/chaqueta-wind.jpg" class="d-block w-100" alt="Producto 3" loading="lazy">
         </div>
       </div>
@@ -53,7 +53,7 @@ include __DIR__ . '/../templates/header.php';
     <!-- Texto + CTA sincronizado con el slide activo -->
     <div class="hero-info text-center mt-3">
       <h2 class="h4 mb-1" id="heroTitle">Producto Estrella 1</h2>
-      <p class="text-muted mb-2" id="heroText">Calidad y diseño para tu día a día.</p>
+      <p class="text-muted mb-2" id="heroText">Calidad y diseño para tu día a día."Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
       <a id="heroBtn" href="<?= $BASE ?>/public/producto.php?id=1" class="btn btn-primary">Ver producto</a>
     </div>
   </div>
@@ -93,7 +93,7 @@ include __DIR__ . '/../templates/header.php';
           <div class="col-md-6">
             <div class="info-box text-md-start text-center">
               <h3 class="h4 mb-2">Colección Urban</h3>
-              <p class="text-muted mb-3">Diseños versátiles para el día a día. Comodidad y estilo urbano.</p>
+              <p class="text-muted mb-3">Diseños versátiles para el día a día. Comodidad y estilo urbano."Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
               <a href="<?= $BASE ?>/public/catalogo.php" class="btn btn-outline-primary">Ver colección</a>
             </div>
           </div>
@@ -129,7 +129,7 @@ include __DIR__ . '/../templates/header.php';
           <div class="col-md-6">
             <div class="info-box text-md-start text-center">
               <h3 class="h4 mb-2">Línea Outdoor</h3>
-              <p class="text-muted mb-3">Prendas técnicas, resistentes y ligeras para tus escapadas.</p>
+              <p class="text-muted mb-3">Prendas técnicas, resistentes y ligeras para tus escapadas."Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
               <a href="<?= $BASE ?>/public/catalogo.php" class="btn btn-outline-primary">Explorar</a>
             </div>
           </div>
@@ -165,7 +165,7 @@ include __DIR__ . '/../templates/header.php';
         </div>
         <div class="text-info-box text-center mt-3">
           <h5>Colección Urbana</h5>
-          <p>Estilo y comodidad para tu día a día.</p>
+          <p>Estilo y comodidad para tu día a día."Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
           <a href="<?= $BASE ?>/public/catalogo.php" class="btn btn-outline-primary btn-sm">Ver catálogo</a>
         </div>
       </div>
@@ -190,7 +190,7 @@ include __DIR__ . '/../templates/header.php';
         </div>
         <div class="text-info-box text-center mt-3">
           <h5>Línea Outdoor</h5>
-          <p>Ropa técnica y ligera para tus escapadas.</p>
+          <p>Ropa técnica y ligera para tus escapadas."Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."</p>
           <a href="<?= $BASE ?>/public/catalogo.php" class="btn btn-outline-primary btn-sm">Explorar</a>
         </div>
       </div>
@@ -215,7 +215,9 @@ include __DIR__ . '/../templates/header.php';
         </div>
         <div class="text-info-box text-center mt-3">
           <h5>Nuevas Temporadas</h5>
-          <p>Descubre nuestras últimas prendas destacadas.</p>
+          <p>Descubre nuestras últimas prendas destacadas.
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+          </p>
           <a href="<?= $BASE ?>/public/producto.php?id=1" class="btn btn-outline-primary btn-sm">Ver producto</a>
         </div>
       </div>
@@ -231,13 +233,13 @@ include __DIR__ . '/../templates/header.php';
 
 <!-- ====== JS: Sincroniza el CTA del hero con el slide activo ====== -->
 <script>
-  (function () {
+  (function() {
     const el = document.getElementById('heroCarousel');
     if (!el) return;
 
     const title = document.getElementById('heroTitle');
-    const text  = document.getElementById('heroText');
-    const btn   = document.getElementById('heroBtn');
+    const text = document.getElementById('heroText');
+    const btn = document.getElementById('heroBtn');
 
     function applyFrom(activeItem) {
       if (!activeItem) return;
@@ -245,15 +247,15 @@ include __DIR__ . '/../templates/header.php';
       const x = activeItem.getAttribute('data-text') || '';
       const u = activeItem.getAttribute('data-url') || '#';
       if (title) title.textContent = t;
-      if (text)  text.textContent  = x;
-      if (btn)   btn.setAttribute('href', u);
+      if (text) text.textContent = x;
+      if (btn) btn.setAttribute('href', u);
     }
 
     // Inicial
     applyFrom(el.querySelector('.carousel-item.active'));
 
     // Al cambiar slide
-    el.addEventListener('slide.bs.carousel', function (e) {
+    el.addEventListener('slide.bs.carousel', function(e) {
       applyFrom(e.relatedTarget);
     });
   })();

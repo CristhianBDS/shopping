@@ -2,18 +2,25 @@
 // public/logout.php
 require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../config/app.php';
+require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/flash.php';
 
-if (session_status() !== PHP_SESSION_ACTIVE) session_start();
-$_SESSION = [];
-if (ini_get('session.use_cookies')) {
-  $params = session_get_cookie_params();
-  setcookie(session_name(), '', time()-42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
-}
-session_destroy();
+$BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
-if (!headers_sent() && function_exists('flash_info')) {
-  session_start(); // para poder setear el flash tras destroy
-  flash_info('Sesión cerrada correctamente.');
+if ($method === 'POST') {
+  // Validar CSRF en POST
+  $token = $_POST['csrf'] ?? '';
+  if (!$token || !hash_equals(auth_csrf() ?? '', $token)) {
+    flash_error('Acción no permitida.');
+    header('Location: ' . $BASE . '/public/index.php'); exit;
+  }
 }
-header('Location: '.BASE_URL.'/public/index.php'); exit;
+
+// Cerrar sesión (para POST válido o GET fallback)
+auth_logout();
+
+// Reabrimos sesión solo para el flash
+session_start();
+flash_success('Sesión cerrada correctamente.');
+header('Location: ' . $BASE . '/public/index.php'); exit;

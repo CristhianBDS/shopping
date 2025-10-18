@@ -490,4 +490,366 @@ body.has-fixed-nav {
   .section-alt .carousel-frame { height: 280px; }
 }
 
-/* (BORRAR) .feature-block y cualquier regla .media-row si no la usas */
+/* Navbar / Logout look & layering */
+#mainNav { z-index: 1080; }
+.dropdown-menu { z-index: 2000; }
+
+/* Botón de logout con aspecto de item de menú */
+.dropdown-logout-form { margin: 0; }
+.dropdown-logout-form .dropdown-item { width: 100%; text-align: left; }
+.dropdown-item-danger { color: #dc3545; }
+.dropdown-item-danger:hover { color: #a52834; }
+
+/* Contenedor de flashes */
+.flash-container .alert { margin-bottom: 8px; }
+/* ===== Product detail ===== */
+.product-gallery { width: 100%; }
+.product-media {
+  aspect-ratio: 1 / 1;            /* cuadrado, moderno */
+  width: 100%;
+  background: #f8fafc;            /* fondo claro */
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.product-media img.product-img,
+.product-media img.related-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;             /* no deforma, contiene */
+}
+
+/* Thumbnails */
+.product-thumbs .thumb {
+  display: block;
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  padding: 4px;
+  transition: border-color .15s ease, transform .15s ease;
+}
+.product-thumbs .thumb:hover { border-color: #cbd5e1; transform: translateY(-1px); }
+.product-thumbs .thumb.active { border-color: #0d6efd; }
+.product-thumbs .thumb img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+/* Related */
+.related-products .related-card {
+  border: 1px solid #eef2f7;
+  border-radius: 12px;
+  overflow: hidden;
+  color: inherit;
+}
+.related-products .related-card:hover {
+  border-color: #dbe4f0;
+  box-shadow: 0 8px 24px rgba(16,24,40,.06);
+}
+.product-media--sm { aspect-ratio: 1 / 1; background: #f8fafc; }
+.related-name { font-size: .95rem; color: #334155; }
+/* ===== PRODUCTO DETALLE: alineación y proporción ===== */
+
+/* Contenedor principal de la ficha */
+.product-detail {
+  align-items: center; /* centra verticalmente la imagen y texto */
+}
+
+/* Galería principal */
+.product-gallery {
+  width: 100%;
+  max-width: 520px;           /* límite visual */
+  margin-inline: auto;        /* centra si hay espacio */
+}
+
+/* Imagen principal cuadrada pero más natural */
+.product-media {
+  aspect-ratio: 4 / 5;        /* proporción más fotográfica */
+  background: #f8fafc;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 12px rgba(0,0,0,.05);
+}
+.product-media img.product-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: transform .3s ease;
+}
+.product-media img.product-img:hover {
+  transform: scale(1.02);
+}
+
+/* Columna derecha: info del producto */
+.product-detail .col-md-6:last-child {
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* centra verticalmente botones con título */
+}
+
+/* Botones */
+.product-detail .btn {
+  min-width: 150px;
+}
+
+/* Espaciado vertical entre precio y botones */
+.product-detail h1 { font-weight: 600; }
+.product-detail .h4 { color: #111827; font-weight: 500; }
+.product-detail .text-muted { line-height: 1.6; max-width: 90%; }
+
+/* Ajustes responsive */
+@media (max-width: 768px) {
+  .product-detail { align-items: flex-start; }
+  .product-detail .col-md-6:last-child {
+    justify-content: flex-start;
+    margin-top: 1.5rem;
+  }
+}
+/* ===== PRODUCT VIEW (inspirado en Nike) ===== */
+.product-view {
+  background-color: #f8f9fa;         /* gris muy claro */
+}
+
+.product-card {
+  background: #fff;
+  border-radius: 16px;
+  max-width: 1100px;
+  margin: 0 auto;
+  transition: box-shadow .3s ease, transform .3s ease;
+}
+.product-card:hover {
+  box-shadow: 0 10px 28px rgba(0,0,0,.08);
+  transform: translateY(-2px);
+}
+
+/* Imagen principal */
+.product-gallery {
+  width: 100%;
+  max-width: 500px;
+  margin: auto;
+}
+.product-media {
+  aspect-ratio: 4/5;                /* proporción tipo retrato */
+  background: #f9fafb;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.product-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: transform .4s ease;
+}
+.product-media img:hover {
+  transform: scale(1.03);
+}
+
+/* Thumbnails */
+.product-thumbs .thumb {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 3px;
+  background: #fff;
+  transition: border-color .15s ease, transform .15s ease;
+  width: 100%;
+}
+.product-thumbs .thumb img {
+  width: 100%;
+  aspect-ratio: 1/1;
+  object-fit: contain;
+  border-radius: 8px;
+}
+.product-thumbs .thumb:hover {
+  border-color: #bbb;
+  transform: translateY(-2px);
+}
+.product-thumbs .thumb.active {
+  border-color: #0d6efd;
+}
+
+/* Info columna */
+.product-info h1 {
+  font-weight: 600;
+  color: #111;
+}
+.product-info .text-muted {
+  line-height: 1.6;
+  color: #6b7280;
+  font-size: 1rem;
+}
+.product-info .btn {
+  min-width: 160px;
+  padding: 0.6rem 1.2rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .product-card { padding: 1rem; }
+  .product-info { text-align: center; }
+  .product-info .btn { width: 100%; }
+  .product-info .d-flex { flex-direction: column; }
+}
+/* Estrellas */
+.rating-stars .star { font-size: 1.1rem; line-height: 1; }
+.star-full { color: #f59e0b; }   /* ámbar */
+.star-half { color: #fbbf24; }   /* tono intermedio (visual) */
+.star-empty { color: #e5e7eb; }  /* gris claro */
+
+/* Input de estrellas (form) */
+.rating-input { display: inline-flex; flex-direction: row-reverse; gap: .25rem; }
+.rating-input input { display: none; }
+.rating-input label {
+  cursor: pointer; font-size: 1.4rem; color: #e5e7eb; transition: color .15s ease;
+}
+.rating-input label:hover,
+.rating-input label:hover ~ label,
+.rating-input input:checked ~ label { color: #f59e0b; }
+
+/* Tallas */
+.badge.border { border: 1px solid #e5e7eb; }
+.product-media--sm { aspect-ratio: 1/1; background: #f8fafc; }
+/* ===== Ficha de producto - estilo ===== */
+.product-card { background:#fff; }
+.product-gallery { background:#f8fafc; }
+.product-media {
+  aspect-ratio: 4/5;
+  background:#f9fafb;
+  border-radius: 12px;
+  overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+}
+.product-media img { width:100%; height:100%; object-fit:contain; }
+
+/* Thumbnails */
+.product-thumbs .thumb {
+  display:block; width:100%; padding:4px;
+  border-radius:10px; background:#fff;
+  transition: border-color .15s ease, transform .15s ease;
+}
+.product-thumbs .thumb img {
+  width:100%; aspect-ratio:1/1; object-fit:contain; border-radius:8px;
+}
+.product-thumbs .thumb:hover { transform: translateY(-1px); }
+.product-thumbs .thumb.active { outline:2px solid rgba(13,110,253,.4); }
+
+/* Estrellas */
+.rating-stars .star { font-size:1.1rem; line-height:1; }
+.star-full { color:#f59e0b; }   /* ámbar */
+.star-half { color:#fbbf24; }
+.star-empty { color:#e5e7eb; }
+
+/* Relacionados */
+.product-media--sm { aspect-ratio:1/1; background:#f8fafc; }
+
+/* Responsive */
+@media (max-width: 768px){
+  .product-detail .btn { width:100%; }
+  .product-detail .btn-group { width:100%; }
+}
+/* --- Ajuste de marco en miniaturas: el borde abraza la imagen --- */
+.product-thumbs .thumb{
+  padding: 0;                 /* sin espacio extra */
+  border: 0;                  /* el borde no va en el contenedor */
+  background: transparent;
+  border-radius: 0;
+}
+
+.product-thumbs .thumb img{
+  display: block;
+  width: 100%;
+  height: auto;               /* evita forzar alto extra */
+  aspect-ratio: auto;         /* sin cuadrado artificial */
+  object-fit: contain;        /* respeta proporción real */
+  border: 2px solid rgba(13,110,253,.35);
+  border-radius: 12px;        /* borde redondeado pegado a la foto */
+}
+
+.product-thumbs .thumb.active img{
+  border-color: #0d6efd;      /* azul más vivo cuando está activa */
+}
+
+/* Opcional: si quieres que todas las miniaturas tengan un ancho parejo */
+.product-thumbs .col-3, .product-thumbs .col-sm-2{
+  max-width: 110px;
+}
+
+/* --- Borde del visualizador principal pegado a la imagen --- */
+.product-gallery{ border: 0 !important; }
+.product-media{
+  border: 2px solid rgba(13,110,253,.35);
+  border-radius: 16px;
+  background: #fff;
+}
+/* ===================== FIX PACK PRODUCTO ===================== */
+/* 1) Quitar bordes “dobles” del contenedor y carrusel */
+.product-card { border: 0 !important; box-shadow: 0 6px 18px rgba(0,0,0,.06); }
+.product-gallery { border: 0 !important; background: transparent; }
+
+/* 2) El borde azul va PEGADO a la imagen grande, no al wrapper */
+.product-media{
+  border: 2px solid rgba(13,110,253,.35);
+  border-radius: 16px;
+  background: #fff;
+  aspect-ratio: 4/5;
+  overflow: hidden;
+  display:flex; align-items:center; justify-content:center;
+}
+.product-media img{ width:100%; height:100%; object-fit:contain; }
+
+/* 3) Thumbnails: sin padding ni borde en el botón contenedor */
+.product-thumbs { margin-top: .5rem; }
+.product-thumbs .thumb{
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+}
+
+/* Borde exacto en la IMAGEN (no en el botón) */
+.product-thumbs .thumb img{
+  display:block;
+  height: 68px;           /* alto uniforme */
+  width: auto;            /* respeta proporción */
+  aspect-ratio: auto;     /* evita “cuadrarlo” a la fuerza */
+  object-fit: contain;
+  border: 2px solid rgba(13,110,253,.35);
+  border-radius: 10px;
+}
+.product-thumbs .thumb.active img{
+  border-color: #0d6efd;              /* azul vivo en activa */
+  box-shadow: 0 0 0 2px #e7f1ff;      /* halo suave */
+}
+
+/* 4) La fila de miniaturas en verdadero “flex” con gap limpio */
+.product-thumbs .row{
+  --bs-gutter-x: 0; --bs-gutter-y: 0;
+  display: flex; flex-wrap: wrap; gap: 12px;
+}
+.product-thumbs .col-3,
+.product-thumbs .col-sm-2{
+  padding: 0 !important;
+  width: auto !important;           /* que la anchura la marque la imagen */
+  flex: 0 0 auto !important;
+}
+
+/* 5) “También te podría interesar”: marcos suaves, no gruesos */
+.related-products .product-media--sm{
+  border: 1.5px solid rgba(13,110,253,.25);
+  border-radius: 12px;
+  background:#fff;
+}
+/* Badge de stock: separador sutil */
+.badge.text-bg-success,
+.badge.text-bg-warning,
+.badge.text-bg-danger { font-weight: 500; }
