@@ -9,7 +9,7 @@ require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/flash.php';
 
 $CONTEXT = 'admin';
-require_admin();
+requireAdmin();
 
 $PAGE_TITLE = 'Productos';
 
@@ -120,6 +120,7 @@ function build_qs(array $overrides = []) {
 }
 
 include __DIR__ . '/../templates/header.php';
+
 ?>
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
   <h1 class="h3 mb-0">Productos</h1>

@@ -6,7 +6,7 @@ require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/flash.php';
 
-require_admin();
+requireAdmin();
 
 $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
 $PAGE_TITLE = 'Detalle del pedido';

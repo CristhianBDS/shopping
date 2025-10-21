@@ -10,8 +10,11 @@ $CONTEXT    = 'admin';
 $PAGE_TITLE = 'Usuarios';
 $BASE       = BASE_URL;
 
-require_login();                // Debe estar logueado (admin o user)
-if (!can('usuarios:list')) {    // Lectura permitida a admin y user
+// Debe estar logueado al menos
+requireadmin();
+
+// Lectura permitida a admin y member/user
+if (!can('usuarios:list')) {
   http_response_code(403); die('Acceso no autorizado');
 }
 
@@ -23,8 +26,12 @@ $csrf = $_SESSION['csrf_users'];
 
 $pdo = getConnection();
 
-// ---- Acciones POST: activar/desactivar ----
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && can('usuarios:state')) {
+// ---- Acciones POST: activar/desactivar (solo admin por defecto) ----
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  if (!can('usuarios:state')) {
+    http_response_code(403); die('Acción no autorizada');
+  }
+
   $token = $_POST['csrf'] ?? '';
   if (!hash_equals($_SESSION['csrf_users'] ?? '', $token)) {
     flash_error('CSRF inválido.');
@@ -51,8 +58,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && can('usuarios:state')) {
 
 // ---- Filtros GET ----
 $q      = trim((string)($_GET['q'] ?? ''));
-$role   = trim((string)($_GET['role'] ?? '')); // 'admin' | 'user' | ''
+$role   = trim((string)($_GET['role'] ?? '')); // 'admin' | 'member' | 'user' | ''
 $status = $_GET['status'] ?? '';               // '1' | '0' | ''
+
+// Normaliza 'user' -> 'member' para filtro
+if ($role === 'user') $role = 'member';
 
 $where = [];
 $params = [];
@@ -62,7 +72,7 @@ if ($q !== '') {
   $params[] = "%$q%";
   $params[] = "%$q%";
 }
-if ($role !== '' && in_array($role, ['admin','user'], true)) {
+if ($role !== '' && in_array($role, ['admin','member'], true)) {
   $where[] = 'role = ?';
   $params[] = $role;
 }
@@ -97,8 +107,9 @@ include __DIR__ . '/../templates/header.php';
   <div class="col-md-3">
     <select name="role" class="form-select">
       <option value="">Rol (todos)</option>
-      <option value="admin" <?= $role==='admin'?'selected':'' ?>>admin</option>
-      <option value="user"  <?= $role==='user'?'selected':'' ?>>user</option>
+      <option value="admin"  <?= $role==='admin'?'selected':'' ?>>admin</option>
+      <option value="member" <?= $role==='member'?'selected':'' ?>>member</option>
+      <option value="user"   <?= ($role==='user'?'selected':'') /* por compat */ ?>>user</option>
     </select>
   </div>
   <div class="col-md-3">
@@ -134,7 +145,13 @@ include __DIR__ . '/../templates/header.php';
         <td><?= (int)$u['id'] ?></td>
         <td><?= htmlspecialchars($u['name']) ?></td>
         <td><?= htmlspecialchars($u['email']) ?></td>
-        <td><span class="badge bg-<?= $u['role']==='admin'?'primary':'secondary' ?>"><?= htmlspecialchars($u['role']) ?></span></td>
+        <td>
+          <?php
+            $roleLabel = $u['role'] === 'member' ? 'user' : $u['role']; // si quieres mostrar "user"
+            $badge = ($roleLabel === 'admin') ? 'primary' : 'secondary';
+          ?>
+          <span class="badge bg-<?= $badge ?>"><?= htmlspecialchars($roleLabel) ?></span>
+        </td>
         <td>
           <?php if ((int)$u['is_active'] === 1): ?>
             <span class="badge bg-success">Activo</span>

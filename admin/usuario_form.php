@@ -10,7 +10,7 @@ $CONTEXT    = 'admin';
 $PAGE_TITLE = 'Usuario';
 $BASE       = BASE_URL;
 
-require_role('admin'); // solo admin
+requireAdmin('admin'); // solo admin
 
 $pdo = getConnection();
 
@@ -97,6 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 include __DIR__ . '/../templates/header.php';
+
 ?>
 
 <h1 class="h4 mb-3"><?= $edit ? 'Editar usuario' : 'Nuevo usuario' ?></h1>

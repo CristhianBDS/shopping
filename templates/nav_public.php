@@ -4,13 +4,17 @@ require_once __DIR__ . '/../inc/auth.php';
 
 $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '';
+
 $active = function(string $file) use ($path): string {
   return str_ends_with($path, "/public/$file") || str_ends_with($path, "/$file") ? ' active' : '';
 };
 
 $user = auth_user();
-$isUser = $user !== null;
+$isUser   = $user !== null;
+$isAdmin  = isAdmin();
+$isMember = !$isAdmin && isMember(); // member verdadero sólo si NO es admin
 $userName = $user['name'] ?? $user['username'] ?? 'Cliente';
+
 $csrf = htmlspecialchars(auth_csrf() ?? '', ENT_QUOTES, 'UTF-8');
 ?>
 <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom fixed-top" id="mainNav">
@@ -26,7 +30,22 @@ $csrf = htmlspecialchars(auth_csrf() ?? '', ENT_QUOTES, 'UTF-8');
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <li class="nav-item"><a class="nav-link<?= $active('index.php') ?>" href="<?= $BASE ?>/public/index.php">Inicio</a></li>
         <li class="nav-item"><a class="nav-link<?= $active('catalogo.php') ?>" href="<?= $BASE ?>/public/catalogo.php">Catálogo</a></li>
-        <li class="nav-item"><a class="nav-link<?= $active('contacto.php') ?>" href="<?= $BASE ?>/public/contacto.php">Contacto</a></li>
+
+        <?php if ($isUser && $isMember): ?>
+          <li class="nav-item">
+            <a class="nav-link<?= $active('beneficios.php') ?>" href="<?= $BASE ?>/public/beneficios.php">Beneficios de socio</a>
+          </li>
+        <?php else: ?>
+          <li class="nav-item">
+            <a class="nav-link<?= $active('contacto.php') ?>" href="<?= $BASE ?>/public/contacto.php">Contacto</a>
+          </li>
+        <?php endif; ?>
+
+        <?php if ($isAdmin): ?>
+          <li class="nav-item">
+            <a class="nav-link" href="<?= $BASE ?>/admin/">Admin</a>
+          </li>
+        <?php endif; ?>
       </ul>
 
       <div class="d-flex align-items-center gap-2">
@@ -68,4 +87,3 @@ $csrf = htmlspecialchars(auth_csrf() ?? '', ENT_QUOTES, 'UTF-8');
     </div>
   </div>
 </nav>
-0

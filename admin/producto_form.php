@@ -11,7 +11,7 @@ $CONTEXT    = 'admin';
 $PAGE_TITLE = 'Producto';
 
 // Antes: requireLogin();
-require_admin();
+requireAdmin();
 
 $pdo = getConnection();
 $id  = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -187,6 +187,7 @@ function image_url_current($fname) {
 }
 
 include __DIR__ . '/../templates/header.php';
+
 ?>
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h1 class="h3 mb-0"><?= $id ? 'Editar' : 'Nuevo' ?> producto</h1>

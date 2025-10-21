@@ -1,129 +1,180 @@
 <?php
-// inc/auth.php — helpers de autenticación (público + admin)
+// inc/auth.php — Helpers de autenticación, autorización y RBAC
 
-// Sesión
 if (session_status() === PHP_SESSION_NONE) {
-  session_start();
+    session_start();
 }
 
-// CSRF bootstrap mín.
-if (empty($_SESSION['csrf'])) {
-  $_SESSION['csrf'] = bin2hex(random_bytes(16));
+/* ========= ESTADO DE SESIÓN ========= */
+
+function isLoggedIn(): bool {
+    return isset($_SESSION['user']) && is_array($_SESSION['user']) && !empty($_SESSION['user']['id']);
 }
 
-// Flashes si existen
-$__flashPath = __DIR__ . '/flash.php';
-if (file_exists($__flashPath)) {
-  require_once $__flashPath;
+function isAdmin(): bool {
+    return isLoggedIn() && (($_SESSION['user']['role'] ?? '') === 'admin');
 }
 
-/** ===== API pública mínima ===== */
-
-/** Usuario autenticado o null */
-function auth_user(): ?array {
-  return isset($_SESSION['user']) && is_array($_SESSION['user']) ? $_SESSION['user'] : null;
+function isMember(): bool {
+    return isLoggedIn() && (($_SESSION['user']['role'] ?? '') === 'member' || ($_SESSION['user']['role'] ?? '') === 'user');
 }
 
-/** ¿hay sesión iniciada? */
-function auth_check(): bool {
-  return auth_user() !== null;
+function currentUser(): ?array {
+    return isLoggedIn() ? $_SESSION['user'] : null;
 }
 
-/** Iniciar sesión con datos mínimos */
-function auth_login(array $user): void {
-  if (session_status() === PHP_SESSION_NONE) session_start();
-  $_SESSION['user'] = [
-    'id'       => $user['id'] ?? null,
-    'username' => $user['username'] ?? ($user['email'] ?? ($user['name'] ?? 'usuario')),
-    'name'     => $user['name'] ?? ($user['username'] ?? 'usuario'),
-    'role'     => $user['role'] ?? 'user',
-  ];
-  if (empty($_SESSION['csrf'])) {
-    $_SESSION['csrf'] = bin2hex(random_bytes(16));
-  }
+/* ========= REDIRECCIONES Y GUARDAS ========= */
+
+function redirect(string $url): void {
+    header('Location: '.$url);
+    exit;
 }
 
-/** Cerrar sesión limpiamente */
+/** Exige sesión (si no hay, manda a login con ?next=) */
+function requireLogin(): void {
+    if (!isLoggedIn()) {
+        $current  = currentUrl();
+        $loginUrl = url('/public/login.php', ['next' => $current]);
+        redirect($loginUrl);
+    }
+}
+
+/** Exige rol admin; si no hay sesión, manda a login; si no es admin, 403 */
+function requireAdmin(): void {
+    if (!isLoggedIn()) {
+        $current  = currentUrl();
+        $loginUrl = url('/public/login.php', ['next' => $current]);
+        redirect($loginUrl);
+    }
+    if (!isAdmin()) {
+        http_response_code(403);
+        echo '<h1>403 Prohibido</h1><p>No tienes permisos para acceder a esta sección.</p>';
+        exit;
+    }
+}
+
+/* ========= HELPERS DE URL ========= */
+
+function baseUrl(): string {
+    return defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
+}
+
+function url(string $path, array $params = []): string {
+    $u = baseUrl().$path;
+    if ($params) {
+        $q = http_build_query($params);
+        $u .= (str_contains($u, '?') ? '&' : '?').$q;
+    }
+    return $u;
+}
+
+function currentUrl(): string {
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $uri    = $_SERVER['REQUEST_URI'] ?? '/';
+    return $scheme.'://'.$host.$uri;
+}
+
+/* ========= CSRF ========= */
+
+function auth_csrf(): string {
+    if (empty($_SESSION['csrf'])) {
+        $_SESSION['csrf'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf'];
+}
+
+function verify_csrf(string $token): bool {
+    return $token && isset($_SESSION['csrf']) && hash_equals($_SESSION['csrf'], $token);
+}
+
+/* ========= LOGOUT ========= */
+
 function auth_logout(): void {
-  if (session_status() !== PHP_SESSION_ACTIVE) session_start();
-  $_SESSION = [];
-  if (ini_get('session.use_cookies')) {
-    $params = session_get_cookie_params();
-    setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
-  }
-  session_destroy();
+    if (session_status() !== PHP_SESSION_ACTIVE) session_start();
+
+    $_SESSION = [];
+
+    if (ini_get('session.use_cookies')) {
+        $p = session_get_cookie_params();
+        setcookie(session_name(), '', [
+            'expires'  => time() - 42000,
+            'path'     => $p['path'],
+            'domain'   => $p['domain'],
+            'secure'   => $p['secure'],
+            'httponly' => $p['httponly'],
+            'samesite' => $p['samesite'] ?? 'Lax',
+        ]);
+    }
+
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_destroy();
+    }
+
+    session_start();
+    if (function_exists('session_regenerate_id')) session_regenerate_id(true);
 }
 
-/** Token CSRF actual */
-function auth_csrf(): ?string {
-  return $_SESSION['csrf'] ?? null;
+/* ========= COMPATIBILIDAD CON TU NAV ========= */
+
+function auth_user(): ?array { return currentUser(); }
+
+/* ========= RBAC SENCILLO ========= */
+
+/** 'admin' | 'member' (o 'user') | '' */
+function current_role(): string {
+    if (!isLoggedIn()) return '';
+    $r = (string)($_SESSION['user']['role'] ?? '');
+    return $r === 'user' ? 'member' : $r; // normaliza 'user' -> 'member'
 }
 
-/** ===== Compatibilidad con tu API previa (admin) ===== */
-
-function is_logged_in(): bool { return auth_check(); }
-function is_admin(): bool {
-  return is_logged_in() && (($_SESSION['user']['role'] ?? '') === 'admin');
+/** True si el usuario tiene alguno de los roles dados (acepta 'user' como sinónimo de 'member') */
+function hasRole(string|array $roles): bool {
+    $r = current_role();
+    if ($r === '') return false;
+    $want = array_map(fn($x) => $x === 'user' ? 'member' : $x, (array)$roles);
+    return in_array($r, $want, true);
 }
 
-function require_login(): void {
-  $base = defined('BASE_URL') ? BASE_URL : 'http://localhost/shopping';
-  if (!is_logged_in()) {
-    $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'] ?? ($base . '/admin/index.php');
-    if (function_exists('flash_info')) { flash_info('Por favor, inicia sesión para continuar.'); }
-    header('Location: ' . $base . '/admin/login.php'); exit;
-  }
+/** require_role('admin') o require_role(['admin','member']) */
+function require_role(string|array $roles): void {
+    if (!isLoggedIn()) {
+        $current  = currentUrl();
+        $loginUrl = url('/public/login.php', ['next' => $current]);
+        redirect($loginUrl);
+    }
+    if (!hasRole($roles)) {
+        http_response_code(403);
+        echo '<h1>403 Prohibido</h1><p>No tienes permisos para acceder a esta sección.</p>';
+        exit;
+    }
 }
 
-function require_admin(): void {
-  $base = defined('BASE_URL') ? BASE_URL : 'http://localhost/shopping';
-  if (!is_logged_in()) {
-    $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'] ?? ($base . '/admin/index.php');
-    if (function_exists('flash_info')) { flash_info('Por favor, inicia sesión como administrador.'); }
-    header('Location: ' . $base . '/admin/login.php'); exit;
-  }
-  if (!is_admin()) {
-    if (function_exists('flash_error')) { flash_error('No tienes permisos para acceder a esta sección.'); }
-    header('Location: ' . $base . '/admin/index.php'); exit;
-  }
+/**
+ * can($permission): permisos por rol
+ * - admin: acceso total
+ * - member: por defecto solo 'usuarios:list' (ajústalo a tu gusto)
+ */
+function can(string $permission): bool {
+    if (!isLoggedIn()) return false;
+    $role = current_role();
+    if ($role === 'admin') return true;
+
+    static $ROLE_PERMS = [
+        'member' => [
+            'usuarios:list',
+            // añade más permisos para member si hace falta:
+            // 'algo:ver', 'algo:crear', ...
+        ],
+    ];
+
+    $perms = $ROLE_PERMS[$role] ?? [];
+    return in_array($permission, $perms, true);
 }
 
-function current_user_role(): string { return $_SESSION['user']['role'] ?? 'user'; }
+/* ========= ALIAS SNAKE_CASE (compatibilidad con código viejo) ========= */
 
-function require_role(string $roleMin = 'admin'): void {
-  require_login();
-  $order = ['user' => 1, 'admin' => 2];
-  $have  = $order[current_user_role()] ?? 0;
-  $need  = $order[$roleMin] ?? PHP_INT_MAX;
-  if ($have < $need) {
-    if (function_exists('flash_error')) { flash_error('Acceso no autorizado.'); }
-    $base = defined('BASE_URL') ? BASE_URL : 'http://localhost/shopping';
-    header('Location: ' . $base . '/admin/index.php'); exit;
-  }
-}
-
-function can(string $perm): bool {
-  $role = current_user_role();
-  $map = [
-    'usuarios:list'   => ['admin','user'],
-    'usuarios:view'   => ['admin','user'],
-    'usuarios:create' => ['admin'],
-    'usuarios:edit'   => ['admin'],
-    'usuarios:state'  => ['admin'],
-  ];
-  return in_array($role, $map[$perm] ?? [], true);
-}
-
-// Retrocompatibilidad
-if (!function_exists('requireLogin')) { function requireLogin(): void { require_login(); } }
-if (!function_exists('requireAdmin')) { function requireAdmin(): void { require_admin(); } }
-
-// Alias flashes legacy
-if (!function_exists('set_flash')) {
-  function set_flash(string $msg, string $type = 'info'): void {
-    $type = strtolower($type);
-    if ($type === 'success' && function_exists('flash_success')) { flash_success($msg); return; }
-    if ($type === 'error'   && function_exists('flash_error'))   { flash_error($msg); return; }
-    if (function_exists('flash_info')) { flash_info($msg); }
-  }
-}
+if (!function_exists('require_admin'))  { function require_admin(): void  { requireAdmin(); } }
+if (!function_exists('require_login'))  { function require_login(): void  { requireLogin(); } }
+if (!function_exists('is_admin'))       { function is_admin(): bool       { return isAdmin(); } }
+if (!function_exists('is_member'))      { function is_member(): bool      { return isMember(); } }

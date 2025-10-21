@@ -22,19 +22,17 @@ if (isset($_GET['bye'])) {
 }
 
 // CSRF simple para el formulario
-if (empty($_SESSION['csrf_login'])) {
-  $_SESSION['csrf_login'] = bin2hex(random_bytes(32));
-}
-$csrf = $_SESSION['csrf_login'];
+$csrf = auth_csrf();
 
 $errors = [];
 $email  = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $token = $_POST['csrf'] ?? '';
-  if (!hash_equals($_SESSION['csrf_login'] ?? '', $token)) {
-    $errors[] = 'CSRF inválido. Recarga la página.';
-  }
+ $token = $_POST['csrf'] ?? '';
+if (!verify_csrf($token)) {
+  $errors[] = 'CSRF inválido. Recarga la página.';
+}
+
 
   $email    = trim((string)($_POST['email'] ?? ''));
   $password = (string)($_POST['password'] ?? '');

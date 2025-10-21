@@ -16,6 +16,8 @@
 .card .name { font-weight:600; font-size:1rem; }
 .card .price { font-weight:700; }
 
+
+
 /* ===== Detalle de producto ===== */
 .back { display:inline-flex; gap:.4rem; align-items:center; margin-bottom:1rem; }
 .product-wrap { display:grid; grid-template-columns:1fr 1fr; gap:2rem; }
@@ -105,7 +107,7 @@ th,td { padding:.6rem .4rem; border-bottom:1px solid #f0f0f0; vertical-align:mid
 .form-container select:focus,
 .form-auth input:focus {
   border-color: #0066FF;
-  box-shadow: 0 0 0 2px rgba(0, 102, 255, 0.25);
+  box-shadow: 0 0 0 2px rgba(53, 99, 168, 0.25);
   outline: none;
 }
 
@@ -397,6 +399,7 @@ html, body {
   }
 }
 
+
 /* Carrusel de la pantalla 2 (izquierda) */
 .home-section .carousel-frame:not(.small) {
   height: 380px;
@@ -482,7 +485,7 @@ body.has-fixed-nav {
 }
 
 /* Fondo suave para diferenciar la sección */
-.section-alt { background: #fafafa; }
+.section-alt { background: #ebe9e9; }
 
 /* Altura de carruseles de la sección 2 (sin depender de 'media-row') */
 .section-alt .carousel-frame { height: 340px; }
@@ -660,7 +663,7 @@ body.has-fixed-nav {
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   padding: 3px;
-  background: #fff;
+  background: #f7f7f7;
   transition: border-color .15s ease, transform .15s ease;
   width: 100%;
 }
@@ -902,7 +905,7 @@ body.has-fixed-nav {
 /* --- Pantalla 2 --- */
 .about-block {
   padding: 100px 0;
-  border-top: 1px solid #f1f3f5;
+  border-top: 1px solid #8ba4bd;
 }
 
 .contact-carousel img {
@@ -914,7 +917,7 @@ body.has-fixed-nav {
 /* --- Pantalla 3 (CTA) --- */
 .cta-block {
   padding: 100px 0 140px;
-  border-top: 1px solid #f1f3f5;
+  border-top: 1px solid #4b86c0;
 }
 .cta-block .cta-text {
   max-width: 720px;
@@ -932,3 +935,4 @@ body.has-fixed-nav {
 /* ===== Gracias Contacto ===== */
 .thanks-section { padding-top: 80px; padding-bottom: 120px; }
 .thanks-card { max-width: 720px; margin: 0 auto; border-radius: 16px; }
+

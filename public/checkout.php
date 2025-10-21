@@ -1,6 +1,10 @@
 <?php
 // public/checkout.php — Checkout sin método de pago (adaptado a schema real)
 require_once __DIR__ . '/../config/app.php';
+require_once __DIR__ . '/../config/bootstrap.php';
+require_once __DIR__ . '/../inc/auth.php';
+requireLogin(); // <= protección
+
 require_once __DIR__ . '/../templates/header.php';
 
 $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
@@ -29,7 +33,7 @@ $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
           <input type="text" name="address" class="form-control" required />
         </div>
 
-        <!-- Opcionales: tu tabla tiene city y zip; si no quieres mostrarlos, se enviarán vacíos -->
+        <!-- Opcionales -->
         <div class="col-md-6">
           <label class="form-label">Ciudad (opcional)</label>
           <input type="text" name="city" class="form-control" />
@@ -63,7 +67,6 @@ $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
 
   function getCartItems(){ try { return JSON.parse(localStorage.getItem('cart') || '[]'); } catch { return []; } }
 
-  // Normaliza items para que coincidan con la API/BD
   function normalizeItems(items){
     return items.map(it => ({
       product_id: Number(it.product_id ?? it.id ?? 0),
@@ -120,7 +123,6 @@ $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
         throw new Error(data.error || 'No se pudo registrar el pedido');
       }
 
-      // Vaciar carrito y redirigir (ojo: NO concatenar window.location.origin con BASE)
       localStorage.removeItem('cart');
       window.location.href = BASE + '/public/gracias.php?order=' + encodeURIComponent(String(data.order_id));
 

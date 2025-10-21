@@ -42,7 +42,7 @@ $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
     <div class="container">
       <div class="footer-brand-inner">
         <img class="footer-logo" src="<?= $BASE ?>/images/logo.svg" width="48" height="48" alt="Logo de la tienda" loading="lazy">
-        <p class="footer-signature m-0">Desarrollado con ❤️ — <strong>Cristhian Sena</strong></p>
+        <p class="footer-signature m-0">Desarrollado por <strong>Cristhian Sena</strong></p>
       </div>
     </div>
   </div>

@@ -1,5 +1,7 @@
 <?php
-// admin/evento_form.php — Alta/Edición de evento
+// admin/events_form.php — Alta/Edición de evento (unificado)
+// Requisitos: tabla `events` con columnas: id, title, type, start_at, end_at, all_day, color, notes, created_at, updated_at
+
 require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/db.php';
@@ -8,56 +10,68 @@ require_once __DIR__ . '/../inc/auth.php';
 
 $CONTEXT    = 'admin';
 $PAGE_TITLE = 'Evento';
-$BASE       = BASE_URL;
+$BASE       = defined('BASE_URL') ? BASE_URL : '';
 
-require_admin();
+requireAdmin();
 $pdo = getConnection();
 
-// CSRF
-if (empty($_SESSION['csrf_event'])) {
-  $_SESSION['csrf_event'] = bin2hex(random_bytes(32));
-}
-$csrf = $_SESSION['csrf_event'];
-
+// ── Contexto: ¿edición o creación?
 $id   = (int)($_GET['id'] ?? 0);
 $edit = $id > 0;
 
+// Breadcrumbs simples
+$BREADCRUMB = 'Dashboard / Calendario / ' . ($edit ? 'Editar' : 'Nuevo');
+
+// ── Modelo en memoria
 $title = $type = $color = $notes = '';
 $all_day = 0;
 $start_date = $start_time = $end_date = $end_time = '';
 
+// ── Cargar evento si es edición
 if ($edit) {
-  $st = $pdo->prepare("SELECT * FROM events WHERE id=? LIMIT 1");
-  $st->execute([$id]);
-  $ev = $st->fetch(PDO::FETCH_ASSOC);
-  if (!$ev) { flash_error('Evento no encontrado.'); header('Location: '.$BASE.'/admin/calendario.php'); exit; }
+  try {
+    $st = $pdo->prepare("SELECT * FROM events WHERE id=? LIMIT 1");
+    $st->execute([$id]);
+    $ev = $st->fetch(PDO::FETCH_ASSOC);
+    if (!$ev) {
+      flash_error('Evento no encontrado.');
+      header('Location: ' . $BASE . '/admin/calendario.php'); exit;
+    }
 
-  $title = $ev['title'];
-  $type  = $ev['type'];
-  $color = $ev['color'] ?? '';
-  $notes = $ev['notes'] ?? '';
-  $all_day = (int)$ev['all_day'];
+    $title = (string)$ev['title'];
+    $type  = (string)$ev['type'];
+    $color = (string)($ev['color'] ?? '');
+    $notes = (string)($ev['notes'] ?? '');
+    $all_day = (int)$ev['all_day'];
 
-  $start_date = date('Y-m-d', strtotime($ev['start_at']));
-  $start_time = date('H:i', strtotime($ev['start_at']));
-  if ($ev['end_at']) {
-    $end_date = date('Y-m-d', strtotime($ev['end_at']));
-    $end_time = date('H:i', strtotime($ev['end_at']));
+    $start_ts   = strtotime($ev['start_at']);
+    $start_date = $start_ts ? date('Y-m-d', $start_ts) : '';
+    $start_time = $start_ts ? date('H:i', $start_ts) : '';
+
+    if (!empty($ev['end_at'])) {
+      $end_ts   = strtotime($ev['end_at']);
+      $end_date = $end_ts ? date('Y-m-d', $end_ts) : '';
+      $end_time = $end_ts ? date('H:i', $end_ts) : '';
+    }
+  } catch (Throwable $e) {
+    if (defined('DEBUG') && DEBUG) flash_error($e->getMessage());
+    flash_error('No se pudo cargar el evento.');
+    header('Location: ' . $BASE . '/admin/calendario.php'); exit;
   }
 }
 
+// ── POST: guardar
 $errors = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $token = $_POST['csrf'] ?? '';
-  if (!hash_equals($_SESSION['csrf_event'] ?? '', $token)) {
-    $errors[] = 'CSRF inválido.';
+  if (!verify_csrf($_POST['csrf'] ?? '')) {
+    $errors[] = 'CSRF inválido. Recarga la página.';
   }
 
-  $title = trim((string)($_POST['title'] ?? ''));
-  $type  = ($_POST['type'] ?? 'otro');
+  $title   = trim((string)($_POST['title'] ?? ''));
+  $type    = (string)($_POST['type'] ?? 'otro');
   $all_day = isset($_POST['all_day']) ? 1 : 0;
-  $color = trim((string)($_POST['color'] ?? ''));
-  $notes = trim((string)($_POST['notes'] ?? ''));
+  $color   = trim((string)($_POST['color'] ?? ''));
+  $notes   = trim((string)($_POST['notes'] ?? ''));
 
   $start_date = trim((string)($_POST['start_date'] ?? ''));
   $start_time = trim((string)($_POST['start_time'] ?? ''));
@@ -68,7 +82,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if (!in_array($type, ['sorteo','descuento','lanzamiento','otro'], true)) $type = 'otro';
   if ($start_date === '') { $errors[] = 'La fecha de inicio es obligatoria.'; }
 
-  $start_at = $start_date . ' ' . ($start_time !== '' ? $start_time : '00:00:00');
+  // Construcción de datetimes
+  $start_at = $start_date ? ($start_date . ' ' . ($start_time !== '' ? $start_time : '00:00:00')) : null;
   $end_at   = null;
   if ($end_date !== '') {
     $end_at = $end_date . ' ' . ($end_time !== '' ? $end_time : '23:59:59');
@@ -77,18 +92,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if (!$errors) {
     try {
       if ($edit) {
-        $st = $pdo->prepare("UPDATE events SET title=?, type=?, start_at=?, end_at=?, all_day=?, color=?, notes=?, updated_at=NOW() WHERE id=? LIMIT 1");
-        $st->execute([$title,$type,$start_at,$end_at,$all_day,$color ?: null,$notes ?: null,$id]);
+        $st = $pdo->prepare("
+          UPDATE events
+          SET title=?, type=?, start_at=?, end_at=?, all_day=?, color=?, notes=?, updated_at=NOW()
+          WHERE id=? LIMIT 1
+        ");
+        $st->execute([
+          $title,
+          $type,
+          $start_at,
+          $end_at,
+          $all_day,
+          $color !== '' ? $color : null,
+          $notes !== '' ? $notes : null,
+          $id
+        ]);
         flash_success('Evento actualizado.');
       } else {
-        $st = $pdo->prepare("INSERT INTO events (title,type,start_at,end_at,all_day,color,notes,created_at,updated_at)
-                             VALUES (?,?,?,?,?,?,?,NOW(),NOW())");
-        $st->execute([$title,$type,$start_at,$end_at,$all_day,$color ?: null,$notes ?: null]);
+        $st = $pdo->prepare("
+          INSERT INTO events (title,type,start_at,end_at,all_day,color,notes,created_at,updated_at)
+          VALUES (?,?,?,?,?,?,?,NOW(),NOW())
+        ");
+        $st->execute([
+          $title,
+          $type,
+          $start_at,
+          $end_at,
+          $all_day,
+          $color !== '' ? $color : null,
+          $notes !== '' ? $notes : null
+        ]);
         flash_success('Evento creado.');
       }
-      unset($_SESSION['csrf_event']);
-      header('Location: '.$BASE.'/admin/calendario.php'); exit;
 
+      header('Location: ' . $BASE . '/admin/calendario.php'); exit;
     } catch (Throwable $e) {
       $errors[] = 'Error al guardar.';
       if (defined('DEBUG') && DEBUG) { $errors[] = $e->getMessage(); }
@@ -96,16 +133,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 }
 
+// ── Render
 include __DIR__ . '/../templates/header.php';
 ?>
 <h1 class="h4 mb-3"><?= $edit ? 'Editar evento' : 'Nuevo evento' ?></h1>
 
 <?php if ($errors): ?>
-  <div class="alert alert-danger"><ul class="mb-0"><?php foreach ($errors as $e): ?><li><?= htmlspecialchars($e) ?></li><?php endforeach; ?></ul></div>
+  <div class="alert alert-danger">
+    <ul class="mb-0">
+      <?php foreach ($errors as $e): ?>
+        <li><?= htmlspecialchars($e) ?></li>
+      <?php endforeach; ?>
+    </ul>
+  </div>
 <?php endif; ?>
 
-<form method="post" class="form-container" autocomplete="off">
-  <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
+<form method="post" class="form-container" autocomplete="off" novalidate>
+  <input type="hidden" name="csrf" value="<?= htmlspecialchars(auth_csrf()) ?>">
+
   <div class="mb-3">
     <label class="form-label">Título</label>
     <input type="text" name="title" class="form-control" required value="<?= htmlspecialchars($title) ?>">

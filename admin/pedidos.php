@@ -11,7 +11,7 @@ $CONTEXT    = 'admin';
 $PAGE_TITLE = 'Pedidos';
 
 // Solo administradores
-require_admin();
+requireAdmin();
 
 $pdo  = getConnection();
 $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
@@ -101,6 +101,7 @@ function qs(array $extra = []): string {
 
 // Vista
 include __DIR__ . '/../templates/header.php';
+
 ?>
 <main class="container py-4">
   <h1 class="page-title h3 mb-3">Pedidos</h1>

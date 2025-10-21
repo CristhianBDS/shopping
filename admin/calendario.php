@@ -10,9 +10,10 @@ $CONTEXT    = 'admin';
 $PAGE_TITLE = 'Calendario';
 $BASE       = BASE_URL;
 
-require_admin();
+requireAdmin();
 
 include __DIR__ . '/../templates/header.php';
+
 ?>
 <h1 class="h4 mb-3">🗓️ Calendario de promociones</h1>
 

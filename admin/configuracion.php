@@ -7,22 +7,16 @@ require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/flash.php';
 require_once __DIR__ . '/../inc/settings.php';
 
-$CONTEXT    = 'admin';
-$PAGE_TITLE = 'Configuración';
+$CONTEXT     = 'admin';
+$PAGE_TITLE  = 'Configuración';
+$BREADCRUMB  = 'Dashboard / Configuración';
 
-require_admin();
+requireAdmin();
 
 $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
 
-// CSRF
-if (empty($_SESSION['csrf_settings'])) {
-  $_SESSION['csrf_settings'] = bin2hex(random_bytes(32));
-}
-$csrf = $_SESSION['csrf_settings'];
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $token = $_POST['csrf'] ?? '';
-  if (!hash_equals($_SESSION['csrf_settings'] ?? '', $token)) {
+  if (!verify_csrf($_POST['csrf'] ?? '')) {
     flash_error('CSRF inválido. Recarga la página.');
     header('Location: ' . $BASE . '/admin/configuracion.php'); exit;
   }
@@ -39,7 +33,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   setting_set('whatsapp_number', $wa);
   setting_set('contact_email', $email);
 
-  unset($_SESSION['csrf_settings']);
   flash_success('Configuración guardada.');
   header('Location: ' . $BASE . '/admin/configuracion.php'); exit;
 }
@@ -50,7 +43,7 @@ $email = setting_get('contact_email', '');
 
 include __DIR__ . '/../templates/header.php';
 ?>
-<main class="container py-4">
+<div class="py-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h4 mb-0">Configuración</h1>
     <a class="btn btn-outline-secondary" href="<?= $BASE ?>/admin/index.php">Volver</a>
@@ -58,7 +51,7 @@ include __DIR__ . '/../templates/header.php';
 
   <form method="post" class="card shadow-sm">
     <div class="card-body">
-      <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
+      <input type="hidden" name="csrf" value="<?= htmlspecialchars(auth_csrf()) ?>">
 
       <div class="mb-3">
         <label class="form-label">Nombre de la tienda</label>
@@ -79,5 +72,5 @@ include __DIR__ . '/../templates/header.php';
       <button class="btn btn-primary">Guardar</button>
     </div>
   </form>
-</main>
+</div>
 <?php include __DIR__ . '/../templates/footer.php'; ?>

@@ -6,11 +6,12 @@ require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../inc/flash.php';
 require_once __DIR__ . '/../inc/auth.php';
 
+
 $CONTEXT    = 'admin';
 $PAGE_TITLE = 'Panel de control';
 $BASE       = BASE_URL;
 
-require_admin(); // solo admin
+requireAdmin(); // solo admin
 
 $pdo = getConnection();
 
@@ -116,6 +117,7 @@ try {
 }
 
 include __DIR__ . '/../templates/header.php';
+
 ?>
 
 <h1 class="h4 mb-4">📊 <span class="text-primary">Panel de control</span></h1>

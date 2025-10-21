@@ -1,8 +1,8 @@
 <?php
 // templates/header.php
 // Requiere: BASE_URL y TZ definidos en config/app.php
-if (!isset($CONTEXT))   { $CONTEXT = 'public'; } // 'public' | 'admin'
-if (!isset($PAGE_TITLE)){ $PAGE_TITLE = 'Tienda'; }
+if (!isset($CONTEXT))    { $CONTEXT = 'public'; } // 'public' | 'admin'
+if (!isset($PAGE_TITLE)) { $PAGE_TITLE = 'Tienda'; }
 
 // Cargar gestor de flashes si existe
 $flashPath = __DIR__ . '/../inc/flash.php';
@@ -32,17 +32,24 @@ if (file_exists($settingsPath)) {
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/base.css">
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/tienda.css">
 </head>
-<!-- Añadimos la clase para aplicar padding-top y evitar que el nav fijo tape el contenido -->
+
+<!-- body con clase para compensar navbar fija -->
 <body class="has-fixed-nav">
-<?php
-  // Navegación según contexto
-  if ($CONTEXT === 'admin') {
-    include __DIR__ . '/nav_admin.php';
-  } else {
-    include __DIR__ . '/nav_public.php';
-  }
-?>
-<main class="container pt-2 pb-4">
-  <?php if (function_exists('flash_render')): ?>
-    <?php flash_render(); ?>
-  <?php endif; ?>
+  <?php
+    // Navegación según contexto
+    if ($CONTEXT === 'admin') {
+      include __DIR__ . '/nav_admin.php';
+    } else {
+      include __DIR__ . '/nav_public.php';
+    }
+  ?>
+  <main class="container pt-2">
+    <?php if (function_exists('flash_render')): ?>
+      <?php flash_render(); ?>
+    <?php endif; ?>
+
+    <?php if (!empty($BREADCRUMB)): ?>
+      <nav class="mb-3 text-muted small" aria-label="breadcrumb">
+        <?= $BREADCRUMB /* imprime HTML simple tipo "Dashboard / Productos" */ ?>
+      </nav>
+    <?php endif; ?>

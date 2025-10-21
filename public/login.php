@@ -1,35 +1,42 @@
 <?php
-// public/login.php — Login clientes
+// public/login.php — Login clientes (con CSRF unificado)
 require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../inc/flash.php';
+require_once __DIR__ . '/../inc/auth.php';
 
 $CONTEXT    = 'public';
 $PAGE_TITLE = 'Ingresar';
-$BASE       = BASE_URL;
+$BASE       = defined('BASE_URL') ? BASE_URL : '/shopping';
 
 if (session_status() !== PHP_SESSION_ACTIVE) session_start();
+
+// Si ya está logueado, fuera
 if (!empty($_SESSION['user']) && (($_SESSION['user']['role'] ?? '') !== '')) {
-  header('Location: '.$BASE.'/public/index.php'); exit;
+  header('Location: '.$BASE.'/public/index.php');
+  exit;
 }
 
-if (empty($_SESSION['csrf_login_public'])) {
-  $_SESSION['csrf_login_public'] = bin2hex(random_bytes(32));
-}
-$csrf = $_SESSION['csrf_login_public'];
+// CSRF unificado (mismo helper que en logout/otros formularios)
+$csrf = auth_csrf();
 
-$email = '';
+// Manejo de "next"
+$next = $_GET['next'] ?? $_POST['next'] ?? ($BASE.'/public/index.php');
+
+$email  = '';
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  // Valida CSRF
   $token = $_POST['csrf'] ?? '';
-  if (!hash_equals($_SESSION['csrf_login_public'] ?? '', $token)) {
+  if (!verify_csrf($token)) {
     $errors[] = 'CSRF inválido. Recarga la página.';
   }
 
   $email = trim((string)($_POST['email'] ?? ''));
   $pwd   = (string)($_POST['password'] ?? '');
+
   if ($email === '' || $pwd === '') {
     $errors[] = 'Completa email y contraseña.';
   }
@@ -47,11 +54,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           'id'    => (int)$u['id'],
           'name'  => (string)$u['name'],
           'email' => (string)$u['email'],
-          'role'  => (string)$u['role'],
+          'role'  => (string)$u['role'], // 'admin' o 'member'
         ];
-        unset($_SESSION['csrf_login_public']);
         flash_success('¡Bienvenido!');
-        header('Location: '.$BASE.'/public/index.php'); exit;
+        header('Location: '.$next);
+        exit;
       } else {
         $errors[] = 'Credenciales inválidas o usuario inactivo.';
       }
@@ -64,22 +71,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 include __DIR__ . '/../templates/header.php';
 ?>
-<h1 class="h4 mb-3">Ingresar</h1>
-<?php if ($errors): ?>
-  <div class="alert alert-danger"><ul class="mb-0"><?php foreach ($errors as $e): ?><li><?= htmlspecialchars($e) ?></li><?php endforeach; ?></ul></div>
-<?php endif; ?>
+<section class="container py-5">
+  <h1 class="h3 text-center mb-4">Ingresar</h1>
 
-<form method="post" class="form-auth" autocomplete="off" novalidate>
-  <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
-  <div class="mb-3">
-    <label class="form-label">Email</label>
-    <input type="email" name="email" class="form-control" required value="<?= htmlspecialchars($email) ?>">
-  </div>
-  <div class="mb-3">
-    <label class="form-label">Contraseña</label>
-    <input type="password" name="password" class="form-control" required>
-  </div>
-  <button class="btn btn-primary w-100">Entrar</button>
-  <a class="btn btn-outline-secondary mt-2" href="<?= $BASE ?>/public/registro.php">Crear cuenta</a>
-</form>
+  <?php if ($errors): ?>
+    <div class="alert alert-danger">
+      <ul class="mb-0">
+        <?php foreach ($errors as $e): ?><li><?= htmlspecialchars($e) ?></li><?php endforeach; ?>
+      </ul>
+    </div>
+  <?php endif; ?>
+
+  <form method="post" class="mx-auto card shadow-sm" style="max-width: 480px;" autocomplete="off" novalidate>
+    <div class="card-body">
+      <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
+      <input type="hidden" name="next" value="<?= htmlspecialchars($next) ?>">
+
+      <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input type="email" name="email" class="form-control" required value="<?= htmlspecialchars($email) ?>">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Contraseña</label>
+        <input type="password" name="password" class="form-control" required>
+      </div>
+
+      <button class="btn btn-primary w-100">Entrar</button>
+      <a class="btn btn-outline-secondary w-100 mt-2" href="<?= $BASE ?>/public/registro.php">Crear cuenta</a>
+    </div>
+  </form>
+</section>
 <?php include __DIR__ . '/../templates/footer.php'; ?>
