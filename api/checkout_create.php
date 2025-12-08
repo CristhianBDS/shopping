@@ -2,6 +2,7 @@
 // api/checkout_create.php — Adaptado a tu schema (sin pago online)
 declare(strict_types=1);
 
+require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../config/db.php';
 
@@ -60,6 +61,8 @@ if (!count($normItems)) {
 $total = 0.0;
 foreach ($normItems as $it) { $total += $it['subtotal']; }
 
+$pdo = null;
+
 try {
   $pdo = getConnection();
   $pdo->beginTransaction();
@@ -107,7 +110,9 @@ try {
   echo json_encode(['ok' => true, 'order_id' => $orderId, 'total' => $total]);
 
 } catch (Throwable $e) {
-  if ($pdo && $pdo->inTransaction()) $pdo->rollBack();
+  if ($pdo instanceof PDO && $pdo->inTransaction()) {
+    $pdo->rollBack();
+  }
   http_response_code(500);
   // Mostrar detalle si DEBUG=true
   if (defined('DEBUG') && DEBUG) {

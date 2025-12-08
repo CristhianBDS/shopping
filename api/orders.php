@@ -1,5 +1,6 @@
 <?php
 // api/orders.php — Acciones sobre pedidos (admin)
+require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../inc/auth.php';   // debe exponer require_admin()

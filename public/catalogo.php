@@ -145,15 +145,9 @@ include __DIR__ . '/../templates/header.php';
     }
   }
 
-  // Mini carrito (contador)
-  function getCart() { try { return JSON.parse(localStorage.getItem("cart") || "[]"); } catch { return []; } }
-  function cartCount() { return getCart().reduce((acc, it) => acc + (Number(it.qty) || 0), 0); }
-  function refreshCartBadge(){ const c = document.getElementById("cart-count"); if (c) c.textContent = String(cartCount()); }
-  window.addEventListener("storage", (ev) => { if (ev.key === "cart") refreshCartBadge(); });
-
   q.addEventListener("input", applyFilter);
   load();
-  refreshCartBadge();
+  // el contador del carrito lo gestiona js/cart.js
 })();
 </script>
 

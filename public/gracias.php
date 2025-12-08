@@ -1,6 +1,7 @@
 <?php
 // public/gracias.php — Pantalla de confirmación de pedido
 require_once __DIR__ . '/../config/app.php';
+require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../inc/settings.php';
 require_once __DIR__ . '/../templates/header.php';
 

@@ -30,33 +30,6 @@
   gap: 8px;
 }
 
-.btn {
-  display: inline-block;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  text-decoration: none;
-  cursor: pointer;
-  font-size: 0.95rem;
-}
-
-.btn-sm {
-  padding: 6px 10px;
-  font-size: 0.9rem;
-}
-
-.btn-primary {
-  border-color: #a3afc0;
-  background: #0d6efd;
-  color: #fff;
-}
-
-.btn-link {
-  border: none;
-  background: transparent;
-  color: #0d6efd;
-  padding: 8px 0;
-}
 
 .admin-pedidos .resumen {
   margin: 6px 0;
@@ -158,8 +131,6 @@
 .admin-pedido .form-estado{display:flex;flex-direction:column;gap:8px;max-width:260px;}
 .admin-pedido .form-estado select{padding:8px;border:1px solid #ddd;border-radius:8px;}
 .admin-pedido .form-actions{margin-top:4px;}
-.admin-pedido .btn{display:inline-block;padding:8px 12px;border:1px solid #ddd;border-radius:8px;text-decoration:none;}
-.admin-pedido .btn-primary{border-color:#0d6efd;background:#0d6efd;color:#fff;}
 .admin-pedido .tabla-wrapper{overflow:auto;}
 .admin-pedido .tabla{width:100%;border-collapse:collapse;}
 .admin-pedido .tabla thead th{text-align:left;padding:8px;border-bottom:1px solid #ddd;}

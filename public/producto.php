@@ -256,19 +256,6 @@ include __DIR__ . '/../templates/header.php';
 </div>
 
 <script>
-  // Añadir al carrito (localStorage)
-  function addToCart(id, name, price, image){
-    const item = { id, name, price, image, qty: 1 };
-    try {
-      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-      const idx = cart.findIndex(p => String(p.id) === String(id));
-      if (idx >= 0) cart[idx].qty = Math.min(99, (Number(cart[idx].qty)||0) + 1);
-      else cart.push(item);
-      localStorage.setItem('cart', JSON.stringify(cart));
-      alert('Producto añadido al carrito');
-    } catch(e) { alert('No se pudo añadir al carrito'); }
-  }
-
   // Favoritos (localStorage)
   (function favInit(){
     const btn = document.getElementById('favBtn'); if(!btn) return;

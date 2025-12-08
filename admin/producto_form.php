@@ -1,8 +1,9 @@
 <?php
 // admin/producto_form.php — Crear/editar producto (con CSRF y subida de imagen segura)
+declare(strict_types=1);
 
-require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../config/app.php';
+require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/flash.php';
@@ -10,7 +11,10 @@ require_once __DIR__ . '/../inc/flash.php';
 $CONTEXT    = 'admin';
 $PAGE_TITLE = 'Producto';
 
-// Antes: requireLogin();
+// BASE genérica
+$BASE = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '/shopping';
+
+// Solo admins
 requireAdmin();
 
 $pdo = getConnection();
@@ -23,11 +27,11 @@ if (empty($_SESSION['csrf_admin_form'])) {
 $csrf = $_SESSION['csrf_admin_form'];
 
 $producto = [
-  'name' => '',
+  'name'        => '',
   'description' => '',
-  'price' => '',
-  'image' => '',
-  'is_active' => 1,
+  'price'       => '',
+  'image'       => '',
+  'is_active'   => 1,
 ];
 
 $oldImage = '';
@@ -40,12 +44,14 @@ if ($id > 0) {
     $oldImage = trim((string)($row['image'] ?? ''));
   } else {
     http_response_code(404);
-    die('Producto no encontrado');
+    flash_error('Producto no encontrado');
+    header('Location: ' . $BASE . '/admin/productos.php');
+    exit;
   }
 }
 
 // Utilidad para nombre de archivo seguro
-function slug_filename($name) {
+function slug_filename(string $name): string {
   $name = preg_replace('~[^\pL\d]+~u', '-', $name);
   $name = trim($name, '-');
   if (function_exists('iconv')) {
@@ -56,8 +62,8 @@ function slug_filename($name) {
   return $name ?: 'file';
 }
 
-$errors = [];
-$newImageName = '';
+$errors        = [];
+$newImageName  = '';
 $uploadDirPath = __DIR__ . '/../uploads';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -70,16 +76,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   $name        = trim($_POST['name'] ?? '');
   $description = trim($_POST['description'] ?? '');
-  $price       = str_replace(',', '.', trim($_POST['price'] ?? ''));
+  $priceRaw    = str_replace(',', '.', trim($_POST['price'] ?? ''));
   $is_active   = isset($_POST['is_active']) ? 1 : 0;
 
-  if ($name === '') $errors[] = 'El nombre es obligatorio.';
-  if ($price === '' || !is_numeric($price)) $errors[] = 'Precio inválido.';
-  if (strlen($name) > 150) $errors[] = 'Nombre demasiado largo (máx 150).';
+  if ($name === '') {
+    $errors[] = 'El nombre es obligatorio.';
+  }
+  if ($priceRaw === '' || !is_numeric($priceRaw)) {
+    $errors[] = 'Precio inválido.';
+  }
+  if (strlen($name) > 150) {
+    $errors[] = 'Nombre demasiado largo (máx 150).';
+  }
+
+  $price = (float)$priceRaw;
 
   // Validación de subida (si hay archivo)
   if (!empty($_FILES['image']['name'])) {
     $file = $_FILES['image'];
+
     if ($file['error'] === UPLOAD_ERR_OK) {
       $allowedExt  = ['jpg','jpeg','png','webp'];
       $allowedMime = ['image/jpeg','image/png','image/webp'];
@@ -107,13 +122,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $baseName     = slug_filename(pathinfo($file['name'], PATHINFO_FILENAME));
         $newImageName = $baseName . '-' . substr(sha1(uniqid('', true)), 0, 8) . '.' . $ext;
 
-        if (!is_dir($uploadDirPath)) { @mkdir($uploadDirPath, 0775, true); }
+        if (!is_dir($uploadDirPath)) {
+          @mkdir($uploadDirPath, 0775, true);
+        }
         if (!is_dir($uploadDirPath) || !is_writable($uploadDirPath)) {
           $errors[] = 'La carpeta /uploads no existe o no tiene permisos.';
         }
       }
     } else {
-      $errors[] = 'Error al subir la imagen (código '.(int)$file['error'].').';
+      $errors[] = 'Error al subir la imagen (código ' . (int)$file['error'] . ').';
     }
   }
 
@@ -128,7 +145,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           // Limpieza opcional: borrar imagen anterior si estaba en uploads
           if ($id > 0 && $oldImage) {
             $oldPath = $uploadDirPath . DIRECTORY_SEPARATOR . $oldImage;
-            if (is_file($oldPath)) { @unlink($oldPath); }
+            if (is_file($oldPath)) {
+              @unlink($oldPath);
+            }
           }
         }
       }
@@ -136,10 +155,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       if (!$errors) {
         if ($id > 0) {
           $sql = "UPDATE products
-                  SET name = ?, description = ?, price = ?, " . ($newImageName ? "image = ?," : "") . " is_active = ?, updated_at = NOW()
+                  SET name = ?, description = ?, price = ?, "
+               . ($newImageName ? "image = ?," : "")
+               . " is_active = ?, updated_at = NOW()
                   WHERE id = ?";
           $params = [$name, $description, $price];
-          if ($newImageName) $params[] = $newImageName;
+          if ($newImageName) {
+            $params[] = $newImageName;
+          }
           $params[] = $is_active;
           $params[] = $id;
 
@@ -148,57 +171,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
           $sql = "INSERT INTO products (name, description, price, image, is_active, created_at, updated_at)
                   VALUES (?, ?, ?, ?, ?, NOW(), NOW())";
-          $pdo->prepare($sql)->execute([$name, $description, $price, $newImageName ?: null, $is_active]);
+          $pdo->prepare($sql)->execute([
+            $name,
+            $description,
+            $price,
+            $newImageName ?: null,
+            $is_active
+          ]);
           $id = (int)$pdo->lastInsertId();
           flash_success('Producto creado correctamente.');
         }
 
         // Rotar token para evitar reenvíos
         unset($_SESSION['csrf_admin_form']);
-        header('Location: ' . BASE_URL . '/admin/productos.php');
+        header('Location: ' . $BASE . '/admin/productos.php');
         exit;
       }
+
     } catch (Throwable $e) {
       $errors[] = 'Error en BD: ' . $e->getMessage();
       if (defined('DEBUG') && DEBUG) {
-        // Puedes loguearlo si quieres
-        // error_log($e);
+        // error_log($e->getMessage());
       }
     }
   }
 
   // Repintar si hay errores
-  $producto['name']       = $name;
-  $producto['description']= $description;
-  $producto['price']      = $price;
-  $producto['is_active']  = $is_active;
-  if ($newImageName) $producto['image'] = $newImageName;
+  $producto['name']        = $name;
+  $producto['description'] = $description;
+  $producto['price']       = $price;
+  $producto['is_active']   = $is_active;
+  if ($newImageName) {
+    $producto['image'] = $newImageName;
+  }
 }
 
-function image_url_current($fname) {
-  $fname = trim((string)$fname);
-  $base  = rtrim(BASE_URL, '/');
-  if ($fname === '') return $base . '/images/placeholder.jpg';
+function image_url_current(string $fname): string {
+  global $BASE;
+
+  $fname = trim($fname);
+  if ($fname === '') {
+    return $BASE . '/images/placeholder.jpg';
+  }
+
   $up = __DIR__ . '/../uploads/' . $fname;
   $im = __DIR__ . '/../images/' . $fname;
-  if (is_file($up)) return $base . '/uploads/' . $fname;
-  if (is_file($im)) return $base . '/images/' . $fname;
-  return $base . '/images/placeholder.jpg';
+
+  if (is_file($up)) {
+    return $BASE . '/uploads/' . $fname;
+  }
+  if (is_file($im)) {
+    return $BASE . '/images/' . $fname;
+  }
+
+  return $BASE . '/images/placeholder.jpg';
 }
 
 include __DIR__ . '/../templates/header.php';
-
 ?>
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h1 class="h3 mb-0"><?= $id ? 'Editar' : 'Nuevo' ?> producto</h1>
-  <a href="<?= BASE_URL ?>/admin/productos.php" class="btn btn-outline-secondary">Volver</a>
+  <a href="<?= $BASE ?>/admin/productos.php" class="btn btn-outline-secondary">Volver</a>
 </div>
 
 <?php if ($errors): ?>
   <div class="alert alert-danger">
     <strong>Revisa:</strong>
     <ul class="mb-0">
-      <?php foreach ($errors as $e): ?><li><?= htmlspecialchars($e) ?></li><?php endforeach; ?>
+      <?php foreach ($errors as $e): ?>
+        <li><?= htmlspecialchars($e) ?></li>
+      <?php endforeach; ?>
     </ul>
   </div>
 <?php endif; ?>
@@ -207,38 +249,74 @@ include __DIR__ . '/../templates/header.php';
   <div class="card-body">
     <form action="<?= htmlspecialchars($_SERVER['REQUEST_URI']) ?>" method="post" enctype="multipart/form-data">
       <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
+
       <div class="row g-3">
         <div class="col-lg-8">
           <div class="mb-3">
             <label class="form-label">Nombre *</label>
-            <input type="text" name="name" class="form-control" maxlength="150" required value="<?= htmlspecialchars($producto['name']) ?>">
+            <input
+              type="text"
+              name="name"
+              class="form-control"
+              maxlength="150"
+              required
+              value="<?= htmlspecialchars((string)$producto['name']) ?>">
           </div>
+
           <div class="mb-3">
             <label class="form-label">Precio *</label>
-            <input type="text" name="price" class="form-control" inputmode="decimal" required value="<?= htmlspecialchars($producto['price']) ?>">
+            <input
+              type="text"
+              name="price"
+              class="form-control"
+              inputmode="decimal"
+              required
+              value="<?= htmlspecialchars((string)$producto['price']) ?>">
           </div>
+
           <div class="mb-3">
             <label class="form-label">Descripción</label>
-            <textarea name="description" rows="6" class="form-control"><?= htmlspecialchars($producto['description']) ?></textarea>
+            <textarea
+              name="description"
+              rows="6"
+              class="form-control"><?= htmlspecialchars((string)$producto['description']) ?></textarea>
           </div>
-          <button class="btn btn-primary"><?= $id ? 'Guardar cambios' : 'Crear producto' ?></button>
+
+          <button class="btn btn-primary">
+            <?= $id ? 'Guardar cambios' : 'Crear producto' ?>
+          </button>
         </div>
 
         <div class="col-lg-4">
           <div class="mb-3">
-            <label class="form-label">Imagen <?= $id ? '(opcional para cambiar)' : '' ?></label>
-            <input type="file" name="image" class="form-control" accept=".jpg,.jpeg,.png,.webp">
+            <label class="form-label">
+              Imagen <?= $id ? '(opcional para cambiar)' : '' ?>
+            </label>
+            <input
+              type="file"
+              name="image"
+              class="form-control"
+              accept=".jpg,.jpeg,.png,.webp">
             <div class="form-text">Máx 2MB. Formatos: JPG/PNG/WebP.</div>
           </div>
+
           <div class="form-check mb-3">
-            <input class="form-check-input" type="checkbox" id="active" name="is_active" <?= (int)$producto['is_active']===1?'checked':'' ?>>
+            <input
+              class="form-check-input"
+              type="checkbox"
+              id="active"
+              name="is_active"
+              <?= (int)$producto['is_active'] === 1 ? 'checked' : '' ?>>
             <label class="form-check-label" for="active">Activo</label>
           </div>
 
           <?php if ($id): ?>
             <div class="mb-3">
               <label class="form-label d-block">Imagen actual</label>
-              <img class="thumb-sm" src="<?= image_url_current($producto['image']) ?>" alt="">
+              <img
+                class="thumb-sm"
+                src="<?= image_url_current((string)$producto['image']) ?>"
+                alt="">
             </div>
           <?php endif; ?>
         </div>

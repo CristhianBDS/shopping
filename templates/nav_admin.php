@@ -2,7 +2,10 @@
 // templates/nav_admin.php — Navbar del panel admin (Bootstrap, dark, fixed-top)
 // Logout por POST con CSRF. Activo por prefijo de ruta.
 
-if (session_status() === PHP_SESSION_NONE) session_start();
+if (session_status() === PHP_SESSION_NONE) {
+  session_start();
+}
+
 require_once __DIR__ . '/../inc/auth.php';
 
 $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
@@ -10,9 +13,16 @@ $user = currentUser();
 $name = $user['name'] ?? 'Administrador';
 $csrf = auth_csrf();
 
-// Detectar activo por prefijo de ruta
-$path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '';
-$active = function (string $prefix) use ($path): string {
+// Ruta actual (solo path: /shopping/admin/..., sin dominio)
+$path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '/';
+
+// Path base de la app (por si BASE_URL incluye dominio)
+$basePath = parse_url($BASE, PHP_URL_PATH) ?: '';
+$basePath = rtrim($basePath, '/');
+
+// Helper para marcar activo
+$active = function (string $subPath) use ($path, $basePath): string {
+  $prefix = $basePath . $subPath;          // ej: /shopping/admin/pedidos
   return str_starts_with($path, $prefix) ? ' active' : '';
 };
 ?>
@@ -27,12 +37,24 @@ $active = function (string $prefix) use ($path): string {
 
     <div class="collapse navbar-collapse" id="navAdmin">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        <li class="nav-item"><a class="nav-link<?= $active($BASE . '/admin/index.php') ?>"    href="<?= $BASE ?>/admin/index.php">Dashboard</a></li>
-        <li class="nav-item"><a class="nav-link<?= $active($BASE . '/admin/pedidos') ?>"      href="<?= $BASE ?>/admin/pedidos.php">Pedidos</a></li>
-        <li class="nav-item"><a class="nav-link<?= $active($BASE . '/admin/productos') ?>"    href="<?= $BASE ?>/admin/productos.php">Productos</a></li>
-        <li class="nav-item"><a class="nav-link<?= $active($BASE . '/admin/usuarios') ?>"     href="<?= $BASE ?>/admin/usuarios.php">Usuarios</a></li>
-        <li class="nav-item"><a class="nav-link<?= $active($BASE . '/admin/calendario') ?>"   href="<?= $BASE ?>/admin/calendario.php">Calendario</a></li>
-        <li class="nav-item"><a class="nav-link<?= $active($BASE . '/admin/configuracion') ?>" href="<?= $BASE ?>/admin/configuracion.php">Configuración</a></li>
+        <li class="nav-item">
+          <a class="nav-link<?= $active('/admin/index.php') ?>" href="<?= $BASE ?>/admin/index.php">Dashboard</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link<?= $active('/admin/pedidos') ?>" href="<?= $BASE ?>/admin/pedidos.php">Pedidos</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link<?= $active('/admin/productos') ?>" href="<?= $BASE ?>/admin/productos.php">Productos</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link<?= $active('/admin/usuarios') ?>" href="<?= $BASE ?>/admin/usuarios.php">Usuarios</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link<?= $active('/admin/calendario') ?>" href="<?= $BASE ?>/admin/calendario.php">Calendario</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link<?= $active('/admin/configuracion') ?>" href="<?= $BASE ?>/admin/configuracion.php">Configuración</a>
+        </li>
       </ul>
 
       <div class="d-flex gap-2 align-items-center">

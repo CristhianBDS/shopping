@@ -16,14 +16,17 @@ function send_security_headers(): void {
     header('Referrer-Policy: strict-origin-when-cross-origin');
 
     // Content-Security-Policy básica (ajusta si usas CDN o inline)
-    $csp = [
-        "default-src 'self'",
-        "img-src 'self' data:",
-        "style-src 'self' 'unsafe-inline'", // permite CSS inline (Bootstrap)
-        "script-src 'self' 'unsafe-inline'", // permite scripts inline
-        "connect-src 'self'",
-        "frame-ancestors 'self'"
-    ];
+   $csp = [
+    "default-src 'self'",
+    "img-src 'self' data:",
+    // Permitimos CSS desde jsDelivr (Bootstrap)
+    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+    // Permitimos JS desde jsDelivr por si lo usas
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+    "connect-src 'self'",
+    "frame-ancestors 'self'"
+];
+
     header('Content-Security-Policy: ' . implode('; ', $csp));
 }
 

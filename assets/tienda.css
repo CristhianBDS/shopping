@@ -936,3 +936,181 @@ body.has-fixed-nav {
 .thanks-section { padding-top: 80px; padding-bottom: 120px; }
 .thanks-card { max-width: 720px; margin: 0 auto; border-radius: 16px; }
 
+/* =========================================================
+   SISTEMA GLOBAL DE BOTONES (override final)
+   ========================================================= */
+
+/* Base para TODOS los .btn (Bootstrap + tu proyecto) */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  padding: .55rem 1.15rem;
+  border-radius: 999px;                 /* pastilla para todos */
+  border: 1px solid transparent;
+  font-size: .95rem;
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    background-color .18s ease,
+    color .18s ease,
+    border-color .18s ease,
+    box-shadow .18s ease,
+    transform .08s ease;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Principal (azul) */
+.btn-primary {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.btn-primary:hover {
+  background-color: var(--primary-600);
+  border-color: var(--primary-700);
+  box-shadow: 0 6px 14px rgba(0,0,0,.18);
+}
+
+/* Botón rojo (ej: "Ver producto") con misma forma */
+.btn-danger {
+  border-radius: 999px;
+  background-color: #e02424;
+  border-color: #e02424;
+  color: #fff;
+}
+.btn-danger:hover {
+  background-color: #b91c1c;
+  border-color: #b91c1c;
+  box-shadow: 0 6px 14px rgba(0,0,0,.18);
+}
+
+/* Outline (Carrito, etc.) */
+.btn-outline-primary,
+.btn-outline-secondary {
+  background-color: transparent;
+  color: var(--primary);
+  border-color: var(--primary);
+}
+.btn-outline-primary:hover,
+.btn-outline-secondary:hover {
+  background-color: rgba(0,102,255,.08);
+  color: var(--primary-700);
+  border-color: var(--primary-600);
+}
+
+/* Botones grises secundarios (tablas, etc.) */
+.btn-light,
+.btn-secondary {
+  background-color: #f3f4f6;
+  border-color: #e5e7eb;
+  color: #374151;
+}
+.btn-light:hover,
+.btn-secondary:hover {
+  background-color: #e5e7eb;
+}
+
+/* Botón de cuenta: reutiliza el sistema general */
+.btn-account {
+  border-radius: 999px;
+  padding: .45rem .95rem;
+  border-width: 1px;
+}
+.btn-account .icon-account {
+  font-size: 1.1rem;
+}
+/* =========================================================
+   NAVBAR: hover + activo coherente
+   ========================================================= */
+
+/* Usamos el id del nav para ganar especificidad sobre Bootstrap */
+#mainNav .nav-link {
+  position: relative;
+  font-weight: 500;
+  color: var(--muted);
+  padding-inline: .75rem;
+}
+#mainNav .nav-link::after { /* deja igual el bloque que ya tienes, solo cambia .navbar por #mainNav */
+  content: '';
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: .25rem;
+  height: 2px;
+  border-radius: 999px;
+  background-color: transparent;
+  opacity: 0;
+  transform: translateY(3px);
+  transition:
+    background-color .18s ease,
+    opacity .18s ease,
+    transform .18s ease;
+}
+
+#mainNav .nav-link:hover {
+  color: var(--primary-700);
+}
+#mainNav .nav-link:hover::after {
+  background-color: rgba(0,102,255,.4);
+  opacity: 1;
+  transform: translateY(0);
+}
+
+#mainNav .nav-link.active {
+  color: var(--primary);
+}
+#mainNav .nav-link.active::after {
+  background-color: var(--primary);
+  opacity: 1;
+  transform: translateY(0);
+}
+
+
+/* Línea inferior suave (hover/activo) */
+.navbar .nav-link::after {
+  content: '';
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: .25rem;
+  height: 2px;
+  border-radius: 999px;
+  background-color: transparent;
+  opacity: 0;
+  transform: translateY(3px);
+  transition:
+    background-color .18s ease,
+    opacity .18s ease,
+    transform .18s ease;
+}
+
+/* Hover general */
+.navbar .nav-link:hover {
+  color: var(--primary-700);
+}
+.navbar .nav-link:hover::after {
+  background-color: rgba(0,102,255,.4);
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Página activa (Inicio, Catálogo, Contacto, Admin...) */
+.navbar .nav-link.active {
+  color: var(--primary);
+}
+.navbar .nav-link.active::after {
+  background-color: var(--primary);
+  opacity: 1;
+  transform: translateY(0);
+}

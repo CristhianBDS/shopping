@@ -1,283 +1,214 @@
 <?php
-// admin/index.php — Dashboard administrador
+// admin/index.php — Dashboard principal de la tienda
+
+declare(strict_types=1);
+
 require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/db.php';
-require_once __DIR__ . '/../inc/flash.php';
 require_once __DIR__ . '/../inc/auth.php';
-
+require_once __DIR__ . '/../inc/flash.php';
+require_once __DIR__ . '/../inc/settings.php';
 
 $CONTEXT    = 'admin';
-$PAGE_TITLE = 'Panel de control';
-$BASE       = BASE_URL;
+$PAGE_TITLE = 'Dashboard';
+$BREADCRUMB = 'Dashboard';
 
-requireAdmin(); // solo admin
+requireAdmin();
 
-$pdo = getConnection();
+$BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
+$pdo  = getConnection();
 
-/* ===========================
-   Totales básicos
-   =========================== */
-$totals = [
-  'orders'   => 0,
-  'products' => 0,
-  'users'    => 0,
-  'sales'    => 0.0,
+// Helpers simples
+function eur(float $n): string {
+  return number_format($n, 2, ',', '.') . ' €';
+}
+function fdate(?string $s): string {
+  if (!$s) return '-';
+  try {
+    return (new DateTime($s))->format('d/m/Y H:i');
+  } catch (Throwable) {
+    return (string)$s;
+  }
+}
+
+// =======================
+//  STATS BÁSICAS
+// =======================
+
+$stats = [
+  'products_total' => 0,
+  'users_total'    => 0,
+  'users_admins'   => 0,
+  'users_clients'  => 0,
+  'orders_total'   => 0,
+  'orders_pending' => 0,
+  'orders_today'   => 0,
+  'revenue_total'  => 0.0,
 ];
 
+// 1) Productos
 try {
-  $totals['orders']   = (int)$pdo->query("SELECT COUNT(*) FROM orders")->fetchColumn();
-  $totals['products'] = (int)$pdo->query("SELECT COUNT(*) FROM products WHERE is_active=1")->fetchColumn();
-  $totals['users']    = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE is_active=1")->fetchColumn();
+  $stats['products_total'] = (int)$pdo->query('SELECT COUNT(*) FROM products')->fetchColumn();
 } catch (Throwable $e) {
-  if (DEBUG) flash_error($e->getMessage());
+  // si la tabla se llama distinto no rompemos el dashboard
 }
 
-/* ===========================
-   Helpers para columnas dinámicas
-   =========================== */
-function columnExists(PDO $pdo, string $table, string $column): bool {
+// 2) Usuarios
+try {
+  $stats['users_total']  = (int)$pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
+  $stats['users_admins'] = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'admin'")->fetchColumn();
+  $stats['users_clients'] = $stats['users_total'] - $stats['users_admins'];
+} catch (Throwable $e) {
+  // ignoramos si aún no existe tabla users
+}
+
+// 3) Pedidos + ingresos
+try {
+  $stats['orders_total']   = (int)$pdo->query('SELECT COUNT(*) FROM orders')->fetchColumn();
+  $stats['orders_pending'] = (int)$pdo->query("SELECT COUNT(*) FROM orders WHERE status = 'pendiente'")->fetchColumn();
+
+  $todayCount = $pdo->query("SELECT COUNT(*) FROM orders WHERE DATE(created_at) = CURDATE()")->fetchColumn();
+  $stats['orders_today'] = (int)$todayCount;
+
+  $revenue = $pdo->query('SELECT SUM(total_amount) FROM orders')->fetchColumn();
+  $stats['revenue_total'] = $revenue !== null ? (float)$revenue : 0.0;
+} catch (Throwable $e) {
+  // si falla algo, dejamos valores en 0
+}
+
+// =======================
+//  ÚLTIMOS PEDIDOS
+// =======================
+
+$latestOrders = [];
+try {
   $st = $pdo->prepare("
-    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
-    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?
+    SELECT id, customer_name, total_amount, status, created_at
+    FROM orders
+    ORDER BY created_at DESC
+    LIMIT 5
   ");
-  $st->execute([$table, $column]);
-  return (bool)$st->fetchColumn();
-}
-function firstExistingColumn(PDO $pdo, string $table, array $candidates): ?string {
-  foreach ($candidates as $c) if (columnExists($pdo, $table, $c)) return $c;
-  return null;
-}
-
-/* ===========================
-   Ventas totales (robusto)
-   =========================== */
-$amountCol = firstExistingColumn($pdo, 'orders', ['total','grand_total','amount','total_amount','importe']);
-$qtyCol    = firstExistingColumn($pdo, 'order_items', ['quantity','qty','cantidad']);
-$priceCol  = firstExistingColumn($pdo, 'order_items', ['price','unit_price','precio']);
-
-try {
-  if ($amountCol) {
-    $sqlSales = "SELECT COALESCE(SUM($amountCol),0) FROM orders WHERE status IN ('pagado','completado')";
-    $totals['sales'] = (float)$pdo->query($sqlSales)->fetchColumn();
-  } elseif ($qtyCol && $priceCol) {
-    $st = $pdo->prepare("
-      SELECT COALESCE(SUM(oi.$priceCol * oi.$qtyCol),0)
-      FROM order_items oi
-      JOIN orders o ON o.id = oi.order_id
-      WHERE o.status IN ('pagado','completado')
-    ");
-    $st->execute();
-    $totals['sales'] = (float)$st->fetchColumn();
-  } else {
-    $totals['sales'] = 0.0;
-  }
+  $st->execute();
+  $latestOrders = $st->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
-  if (DEBUG) flash_error($e->getMessage());
-  $totals['sales'] = 0.0;
-}
-
-/* ===========================
-   Ventas por mes (gráfico últimos 6 meses)
-   =========================== */
-$chartData = ['labels'=>[], 'values'=>[]];
-try {
-  if ($amountCol) {
-    $stmt = $pdo->query("
-      SELECT DATE_FORMAT(created_at,'%Y-%m') AS month, SUM($amountCol) AS total
-      FROM orders
-      WHERE status IN ('pagado','completado')
-      GROUP BY DATE_FORMAT(created_at,'%Y-%m')
-      ORDER BY month DESC
-      LIMIT 6
-    ");
-  } elseif ($qtyCol && $priceCol) {
-    $stmt = $pdo->query("
-      SELECT DATE_FORMAT(o.created_at,'%Y-%m') AS month, SUM(oi.$priceCol * oi.$qtyCol) AS total
-      FROM order_items oi
-      JOIN orders o ON o.id = oi.order_id
-      WHERE o.status IN ('pagado','completado')
-      GROUP BY DATE_FORMAT(o.created_at,'%Y-%m')
-      ORDER BY month DESC
-      LIMIT 6
-    ");
-  } else {
-    $stmt = false;
-  }
-
-  if ($stmt) {
-    $rows = array_reverse($stmt->fetchAll(PDO::FETCH_ASSOC)); // antiguo → reciente
-    foreach ($rows as $r) {
-      $chartData['labels'][] = $r['month'];
-      $chartData['values'][] = (float)$r['total'];
-    }
-  }
-} catch (Throwable $e) {
-  if (DEBUG) flash_error($e->getMessage());
+  $latestOrders = [];
 }
 
 include __DIR__ . '/../templates/header.php';
-
 ?>
 
-<h1 class="h4 mb-4">📊 <span class="text-primary">Panel de control</span></h1>
+<main class="container py-4">
+  <h1 class="h4 mb-3">Dashboard</h1>
 
-<!-- Cards resumen -->
-<div class="dashboard-cards">
-  <div class="card dash-card">
-    <div class="card-body text-center">
-      <h2 class="h3 mb-1"><?= $totals['orders'] ?></h2>
-      <p class="text-muted mb-0">Pedidos</p>
-    </div>
-  </div>
-  <div class="card dash-card">
-    <div class="card-body text-center">
-      <h2 class="h3 mb-1"><?= $totals['products'] ?></h2>
-      <p class="text-muted mb-0">Productos activos</p>
-    </div>
-  </div>
-  <div class="card dash-card">
-    <div class="card-body text-center">
-      <h2 class="h3 mb-1"><?= $totals['users'] ?></h2>
-      <p class="text-muted mb-0">Usuarios activos</p>
-    </div>
-  </div>
-  <div class="card dash-card">
-    <div class="card-body text-center">
-      <h2 class="h3 mb-1">€ <?= number_format($totals['sales'], 2, ',', '.') ?></h2>
-      <p class="text-muted mb-0">Ingresos totales</p>
-    </div>
-  </div>
-</div>
+  <!-- Tarjetas de resumen -->
+  <section class="dashboard-cards mb-4">
+    <!-- Ventas totales -->
+    <article class="card dash-card">
+      <div class="card-body">
+        <h2 class="h6 text-muted mb-1">Ingresos totales</h2>
+        <p class="h4 mb-1"><?= eur($stats['revenue_total']) ?></p>
+        <p class="small text-muted mb-0">
+          Pedidos: <?= (int)$stats['orders_total'] ?> · Hoy: <?= (int)$stats['orders_today'] ?>
+        </p>
+      </div>
+    </article>
 
-<!-- Gráfico de ventas (línea) -->
-<div class="card mt-4">
-  <div class="card-body">
-    <h5 class="card-title mb-3">Ventas por mes (últimos 6 meses)</h5>
-    <div class="chart-container">
-      <canvas id="chartVentas"></canvas>
-    </div>
-  </div>
-</div>
+    <!-- Pedidos -->
+    <article class="card dash-card">
+      <div class="card-body">
+        <h2 class="h6 text-muted mb-1">Pedidos</h2>
+        <p class="h4 mb-1"><?= (int)$stats['orders_total'] ?></p>
+        <p class="small mb-0">
+          <span class="badge bg-secondary">Pendientes: <?= (int)$stats['orders_pending'] ?></span>
+        </p>
+      </div>
+    </article>
 
-<!-- Calendario mini (widget) -->
-<div class="card mt-4">
-  <div class="card-body">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <h5 class="card-title mb-0">Calendario (vista rápida)</h5>
-      <a class="btn btn-sm btn-outline-primary" href="<?= $BASE ?>/admin/calendario.php">Abrir calendario</a>
-    </div>
-    <div id="calendarMini"></div>
-  </div>
-</div>
+    <!-- Usuarios / clientes -->
+    <article class="card dash-card">
+      <div class="card-body">
+        <h2 class="h6 text-muted mb-1">Usuarios</h2>
+        <p class="h4 mb-1"><?= (int)$stats['users_total'] ?></p>
+        <p class="small text-muted mb-0">
+          Admin: <?= (int)$stats['users_admins'] ?> · Clientes: <?= (int)$stats['users_clients'] ?>
+        </p>
+      </div>
+    </article>
 
-<!-- Últimos pedidos -->
-<div class="card mt-4 mb-4">
-  <div class="card-body">
-    <h5 class="card-title mb-3">Últimos pedidos</h5>
-    <div class="table-responsive">
-      <table class="table table-sm table-striped align-middle">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Cliente</th>
-            <th>Fecha</th>
-            <th>Estado</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php
-          try {
-            $orderTotalCol = $amountCol ?: null;
-            $sql = "SELECT id, customer_name, status, created_at" . ($orderTotalCol ? ", $orderTotalCol AS total" : "") . "
-                    FROM orders ORDER BY id DESC LIMIT 5";
-            $q = $pdo->query($sql);
-            foreach ($q as $r):
-              $fecha = date('d/m/Y', strtotime($r['created_at']));
-              $totalTxt = '-';
-              if ($orderTotalCol && isset($r['total'])) {
-                $totalTxt = '€ '.number_format((float)$r['total'], 2, ',', '.');
-              }
-          ?>
+    <!-- Productos -->
+    <article class="card dash-card">
+      <div class="card-body">
+        <h2 class="h6 text-muted mb-1">Catálogo</h2>
+        <p class="h4 mb-1"><?= (int)$stats['products_total'] ?></p>
+        <p class="small text-muted mb-0">Productos publicados en la tienda</p>
+      </div>
+    </article>
+  </section>
+
+  <!-- Últimos pedidos -->
+  <section class="card shadow-sm mb-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="h6 mb-0">Últimos pedidos</h2>
+        <a class="btn btn-sm btn-outline-primary" href="<?= $BASE ?>/admin/pedidos.php">Ver todos</a>
+      </div>
+
+      <?php if (!$latestOrders): ?>
+        <p class="text-muted small mb-0">Aún no hay pedidos registrados.</p>
+      <?php else: ?>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead class="table-light">
               <tr>
-                <td><?= (int)$r['id'] ?></td>
-                <td><?= htmlspecialchars($r['customer_name'] ?? '') ?></td>
-                <td><?= $fecha ?></td>
-                <td><?= ucfirst($r['status'] ?? '') ?></td>
-                <td><?= $totalTxt ?></td>
+                <th>ID</th>
+                <th>Cliente</th>
+                <th class="text-end">Total</th>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th class="text-end">Acciones</th>
               </tr>
-          <?php
-            endforeach;
-          } catch (Throwable $e) { ?>
-              <tr><td colspan="5" class="text-danger">Error al cargar pedidos</td></tr>
-          <?php } ?>
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              <?php foreach ($latestOrders as $o): ?>
+                <tr>
+                  <td>#<?= (int)$o['id'] ?></td>
+                  <td><?= htmlspecialchars($o['customer_name'] ?? '-') ?></td>
+                  <td class="text-end"><?= eur((float)($o['total_amount'] ?? 0)) ?></td>
+                  <td><?= fdate($o['created_at'] ?? '') ?></td>
+                  <td>
+                    <span class="badge text-bg-secondary">
+                      <?= htmlspecialchars(ucfirst((string)$o['status'])) ?>
+                    </span>
+                  </td>
+                  <td class="text-end">
+                    <a href="<?= $BASE ?>/admin/pedido.php?id=<?= (int)$o['id'] ?>" class="btn btn-sm btn-outline-secondary">
+                      Ver
+                    </a>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      <?php endif; ?>
     </div>
-  </div>
-</div>
+  </section>
 
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const ctx = document.getElementById('chartVentas');
-  if (!ctx) return;
-
-  // Evitar inicialización doble si el script se ejecuta más de una vez
-  if (window.__chartVentas) {
-    window.__chartVentas.destroy();
-  }
-
-  const labels = <?= json_encode($chartData['labels'] ?? []) ?>;
-  const values = <?= json_encode($chartData['values'] ?? []) ?>;
-
-  window.__chartVentas = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: 'Ventas (€)',
-        data: values,
-        borderColor: '#0066FF',
-        backgroundColor: 'rgba(0,102,255,0.15)',
-        fill: true,
-        tension: 0.35,
-        pointRadius: 5,
-        pointBackgroundColor: '#0066FF',
-        pointBorderColor: '#fff',
-        pointHoverRadius: 7,
-        pointHoverBackgroundColor: '#0044cc',
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false, // usa la altura del contenedor .chart-container
-      scales: { y: { beginAtZero: true } },
-      plugins: { legend: { labels: { color: '#333', font: { weight: 'bold' } } } }
-    }
-  });
-});
-</script>
-
-<!-- FullCalendar (mini) -->
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-  const mini = document.getElementById('calendarMini');
-  if (!mini) return;
-  const calMini = new FullCalendar.Calendar(mini, {
-    initialView: 'dayGridMonth',
-    height: 'auto',
-    headerToolbar: { left:'prev,next', center:'title', right:'' },
-    locale: 'es',
-    events: { url: '<?= $BASE ?>/api/events.php' },
-    eventClick: ({event}) => window.location.href = '<?= $BASE ?>/admin/evento_form.php?id=' + event.id,
-  });
-  calMini.render();
-});
-</script>
+  <!-- CTA rápida -->
+  <section class="card shadow-sm">
+    <div class="card-body d-flex flex-wrap gap-2 justify-content-between align-items-center">
+      <div>
+        <h2 class="h6 mb-1">Acciones rápidas</h2>
+        <p class="small text-muted mb-0">Gestiona productos, pedidos y la configuración de la tienda.</p>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-primary btn-sm" href="<?= $BASE ?>/admin/productos.php">Gestionar productos</a>
+        <a class="btn btn-outline-primary btn-sm" href="<?= $BASE ?>/admin/pedidos.php">Revisar pedidos</a>
+        <a class="btn btn-outline-secondary btn-sm" href="<?= $BASE ?>/admin/configuracion.php">Configuración</a>
+      </div>
+    </div>
+  </section>
+</main>
 
 <?php include __DIR__ . '/../templates/footer.php'; ?>
