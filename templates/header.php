@@ -15,13 +15,23 @@ if (file_exists($flashPath)) {
 
 // Settings (nombre tienda, colores, branding)
 $settingsPath = __DIR__ . '/../inc/settings.php';
+
 $SHOP_NAME   = 'Mi Tienda';
 $SHOP_SLOGAN = '';
+
+// Colores base por defecto
 $PRIMARY     = '#0066FF';
 $BG          = '#FFFFFF';
 $TEXT        = '#1d1f23';
 $MUTED       = '#6c757d';
 $BORDER      = '#e9ecef';
+$ACCENT      = '#111827';
+
+// Tema por defecto
+$THEME_MODE  = 'light';      // light | dark | auto
+$THEME_CLASS = 'theme-light';
+
+// Logo / favicon
 $LOGO_URL    = '';
 $FAVICON_URL = '';
 
@@ -33,7 +43,9 @@ if (file_exists($settingsPath)) {
 
   // Colores personalizados
   $primary_color    = setting_get('primary_color', '#0066FF');
-  $background_color = setting_get('background_color', '#FFFFFF');
+  $background_color = setting_get('background_color', '#FFFFFF'); // opcional
+  $accent_color     = setting_get('accent_color', '#111827');     // nuevo
+  $theme_mode_raw   = setting_get('theme_mode', 'light');         // light | dark | auto
 
   // Sanitizar hex (#rrggbb o #rgb)
   $sanitize_hex = function (?string $value, string $fallback): string {
@@ -46,8 +58,9 @@ if (file_exists($settingsPath)) {
 
   $PRIMARY = $sanitize_hex($primary_color, '#0066FF');
   $BG      = $sanitize_hex($background_color, '#FFFFFF');
+  $ACCENT  = $sanitize_hex($accent_color, '#111827');
 
-  // Otros colores base (podrías exponerlos también en config si quieres)
+  // Otros colores base
   $TEXT   = '#1d1f23';
   $MUTED  = '#6c757d';
   $BORDER = '#e9ecef';
@@ -59,6 +72,27 @@ if (file_exists($settingsPath)) {
   $base = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
   $LOGO_URL    = $base . '/' . ltrim($logo_setting, '/');
   $FAVICON_URL = $base . '/' . ltrim($favicon_setting, '/');
+
+  // Normalizar modo de tema
+  $theme_mode_raw = strtolower(trim((string)$theme_mode_raw));
+  if (!in_array($theme_mode_raw, ['light', 'dark', 'auto'], true)) {
+    $theme_mode_raw = 'light';
+  }
+  $THEME_MODE = $theme_mode_raw;
+}
+
+// Clase de tema para el <body>
+switch ($THEME_MODE) {
+  case 'dark':
+    $THEME_CLASS = 'theme-dark';
+    break;
+  case 'auto':
+    $THEME_CLASS = 'theme-auto';
+    break;
+  case 'light':
+  default:
+    $THEME_CLASS = 'theme-light';
+    break;
 }
 
 // Título final
@@ -86,24 +120,76 @@ $title = $PAGE_TITLE ? ($PAGE_TITLE . ' | ' . $SHOP_NAME) : $SHOP_NAME;
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/base.css">
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/tienda.css">
 
-  <!-- Variables de color dinámicas para toda la UI -->
+  <!-- Variables de color dinámicas y tema -->
   <style>
     :root {
+      /* Colores principales configurables */
       --primary: <?= htmlspecialchars($PRIMARY) ?>;
       --primary-600: <?= htmlspecialchars($PRIMARY) ?>;
       --primary-700: <?= htmlspecialchars($PRIMARY) ?>;
+      --accent: <?= htmlspecialchars($ACCENT) ?>;
+
       --bg: <?= htmlspecialchars($BG) ?>;
       --surface: #ffffff;
       --text: <?= htmlspecialchars($TEXT) ?>;
       --muted: <?= htmlspecialchars($MUTED) ?>;
       --border: <?= htmlspecialchars($BORDER) ?>;
       --shadow: 0 1px 4px rgba(0,0,0,0.08);
+
+      /* Enlace con Bootstrap */
+      --bs-primary: var(--primary);
+      --bs-link-color: var(--primary);
+      --bs-link-hover-color: var(--primary);
+    }
+
+    /* Tema claro (forzado) */
+    body.theme-light {
+      --bs-body-bg: #f9fafb;
+      --bs-body-color: #111827;
+      --bs-card-bg: #ffffff;
+      --bs-navbar-bg: #ffffff;
+    }
+
+    /* Tema oscuro (forzado) */
+    body.theme-dark {
+      --bs-body-bg: #020617;
+      --bs-body-color: #e5e7eb;
+      --bs-card-bg: #020617;
+      --bs-navbar-bg: #020617;
+    }
+
+    /* Tema automático: arranca como claro */
+    body.theme-auto {
+      --bs-body-bg: #f9fafb;
+      --bs-body-color: #111827;
+      --bs-card-bg: #ffffff;
+      --bs-navbar-bg: #ffffff;
+    }
+
+    /* Si el sistema está en modo oscuro y el usuario eligió "auto" */
+    @media (prefers-color-scheme: dark) {
+      body.theme-auto {
+        --bs-body-bg: #020617;
+        --bs-body-color: #e5e7eb;
+        --bs-card-bg: #020617;
+        --bs-navbar-bg: #020617;
+      }
+    }
+
+    /* Aplicar variables a fondo y texto básicos */
+    body {
+      background-color: var(--bs-body-bg, #f9fafb);
+      color: var(--bs-body-color, #111827);
+    }
+
+    .card {
+      background-color: var(--bs-card-bg, #ffffff);
     }
   </style>
 </head>
 
-<!-- body con clase para compensar navbar fija -->
-<body class="has-fixed-nav">
+<!-- body con clase para compensar navbar fija + tema -->
+<body class="has-fixed-nav <?= htmlspecialchars($THEME_CLASS) ?>">
   <?php
     // Navegación según contexto
     if ($CONTEXT === 'admin') {

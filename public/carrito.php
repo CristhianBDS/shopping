@@ -10,34 +10,35 @@ $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
 
 include __DIR__ . '/../templates/header.php';
 ?>
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <a class="btn btn-outline-secondary" href="<?= $BASE ?>/public/catalogo.php">← Seguir comprando</a>
-  <a class="btn btn-outline-dark" href="<?= $BASE ?>/public/carrito.php">🛒 <span id="cart-count">0</span></a>
-</div>
+<section class="cart-page py-3">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <a class="btn btn-outline-secondary" href="<?= $BASE ?>/public/catalogo.php">← Seguir comprando</a>
+    <a class="btn btn-outline-dark" href="<?= $BASE ?>/public/carrito.php">🛒 <span id="cart-count">0</span></a>
+  </div>
 
-<div id="empty" class="empty" style="display:none;">Tu carrito está vacío.</div>
+  <div id="empty" class="empty" style="display:none;">Tu carrito está vacío.</div>
 
-<div class="row g-3" id="grid" style="display:none;">
-  <section class="col-lg-8">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table align-middle">
-            <thead>
-              <tr>
-                <th>Producto</th>
-                <th class="text-end">Precio</th>
-                <th class="text-end">Cantidad</th>
-                <th class="text-end">Subtotal</th>
-                <th class="text-end"></th>
-              </tr>
-            </thead>
-            <tbody id="tbody"></tbody>
-          </table>
+  <div class="row g-3" id="grid" style="display:none;">
+    <section class="col-lg-8">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table align-middle">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th class="text-end">Precio</th>
+                  <th class="text-end">Cantidad</th>
+                  <th class="text-end">Subtotal</th>
+                  <th class="text-end"></th>
+                </tr>
+              </thead>
+              <tbody id="tbody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </div>
-  </section>
+</section>
 
   <aside class="col-lg-4">
     <div class="card shadow-sm">
@@ -66,7 +67,7 @@ include __DIR__ . '/../templates/header.php';
     </div>
   </aside>
 </div>
-
+</section>
 <script>
 (function(){
   const BASE = <?= json_encode($BASE) ?>;

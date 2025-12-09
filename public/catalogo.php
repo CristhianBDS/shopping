@@ -10,7 +10,7 @@ $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
 
 include __DIR__ . '/../templates/header.php';
 ?>
-<div class="page">
+<div class="page page--catalogo">
   <header class="catalogo-header">
     <h1>Catálogo</h1>
     <div class="toolbar">

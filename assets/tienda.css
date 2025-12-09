@@ -1114,3 +1114,120 @@ body.has-fixed-nav {
   opacity: 1;
   transform: translateY(0);
 }
+/* =========================================================
+   🧩 FASE 1 · CATÁLOGO RESPONSIVE (FIX)
+   ========================================================= */
+
+/* Layout por defecto: pensado para móvil */
+.catalogo-header {
+  display: flex;
+  flex-direction: column;     /* título arriba, toolbar debajo */
+  align-items: flex-start;
+  gap: .75rem;
+  margin-bottom: 1rem;
+}
+
+.catalogo-header .toolbar {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  width: 100%;               /* que ocupe todo el ancho disponible */
+}
+
+/* El buscador ocupa todo el espacio libre */
+.catalogo-header .search {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Los badges (contador y carrito) solo ocupan lo que necesitan */
+.catalogo-header .badge {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* Un poco menos de padding en móvil para esta página */
+.page.page--catalogo {
+  padding: 1rem .75rem;
+}
+
+/* En móviles muy pequeños: forzamos 1 columna por claridad */
+@media (max-width: 480px) {
+  .catalogo-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== A partir de tablet / escritorio (>= 768px) ===== */
+@media (min-width: 768px) {
+  .page.page--catalogo {
+    padding: 1.5rem;
+  }
+
+  .catalogo-header {
+    flex-direction: row;             /* título e toolbar en la misma fila */
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .catalogo-header .toolbar {
+    width: auto;
+  }
+
+  /* Recuperamos el ancho “fijo” del buscador, pero solo en grande */
+  .catalogo-header .search {
+    width: 240px;
+    flex: 0 0 auto;
+  }
+}
+/* =========================================================
+   🧩 FASE 1 · CARRO Y CHECKOUT RESPONSIVE
+   ========================================================= */
+
+/* Carrito: mensaje vacío centrado y limpio */
+.cart-page #empty.empty {
+  max-width: 480px;
+  margin: 1.5rem auto;
+}
+
+/* Carrito: contenedor principal */
+.cart-page .row {
+  margin-bottom: 1rem;
+}
+
+/* Checkout: carta más “flotante” (usa el card existente) */
+.checkout-page .card {
+  border-radius: 12px;
+}
+
+/* ================== VISTA MÓVIL (<= 576px) ================== */
+@media (max-width: 576px) {
+  /* Barra superior del carrito: botones uno debajo de otro */
+  .cart-page .d-flex.justify-content-between.align-items-center {
+    flex-direction: column;
+    align-items: stretch;
+    gap: .5rem;
+  }
+
+  .cart-page .d-flex.justify-content-between.align-items-center .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Resumen del carrito: que la tarjeta tenga algo más de aire */
+  .cart-page aside .card {
+    margin-top: .5rem;
+  }
+
+  /* Checkout: botones de abajo en columna, full width */
+  .checkout-page .d-flex.justify-content-between.align-items-center {
+    flex-direction: column;
+    align-items: stretch;
+    gap: .75rem;
+  }
+
+  .checkout-page .d-flex.justify-content-between.align-items-center .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

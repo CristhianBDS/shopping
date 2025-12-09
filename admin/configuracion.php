@@ -199,180 +199,182 @@ $currentLogo  = setting_get('shop_logo', '');
 
 include __DIR__ . '/../templates/header.php';
 ?>
-<div class="py-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h4 mb-0">Configuración de la tienda</h1>
-    <a class="btn btn-outline-secondary" href="<?= $BASE ?>/admin/index.php">Volver al panel</a>
-  </div>
-
-  <form method="post" class="card shadow-sm" enctype="multipart/form-data">
-    <div class="card-body">
-      <input type="hidden" name="csrf" value="<?= htmlspecialchars(auth_csrf()) ?>">
-
-      <!-- ================== Datos generales ================== -->
-      <h5 class="mb-3">Datos generales</h5>
-
-      <div class="row g-3 mb-3">
-        <div class="col-md-6">
-          <label class="form-label">Nombre de la tienda *</label>
-          <input type="text" name="shop_name" class="form-control" maxlength="120"
-                 value="<?= htmlspecialchars($shop) ?>" required>
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">Slogan</label>
-          <input type="text" name="shop_slogan" class="form-control" maxlength="160"
-                 value="<?= htmlspecialchars($slogan) ?>" placeholder="Ej: Moda urbana todos los días">
-        </div>
-      </div>
-
-      <div class="row g-3 mb-4">
-        <div class="col-md-4">
-          <label class="form-label">WhatsApp (E.164)</label>
-          <input type="text" name="whatsapp_number" class="form-control"
-                 placeholder="+34123456789"
-                 value="<?= htmlspecialchars($wa) ?>">
-          <div class="form-text">Formato recomendado internacional, ej: +34123456789</div>
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">Email de contacto</label>
-          <input type="email" name="contact_email" class="form-control"
-                 value="<?= htmlspecialchars($email) ?>">
-        </div>
-      </div>
-
-      <hr class="my-4">
-
-      <!-- ================== Branding (Logo & colores) ================== -->
-      <h5 class="mb-3">Branding y estilo</h5>
-
-      <div class="row g-3 mb-3">
-        <div class="col-md-6">
-          <label class="form-label d-flex justify-content-between align-items-center">
-            <span>Logo de la tienda</span>
-            <small class="text-muted">Opcional • JPG/PNG/WebP/SVG • máx 2MB</small>
-          </label>
-          <input type="file" name="shop_logo_file" class="form-control"
-                 accept=".jpg,.jpeg,.png,.webp,.svg">
-
-          <?php if ($currentLogo): ?>
-            <div class="mt-2 d-flex align-items-center gap-3">
-              <div>
-                <span class="d-block small text-muted mb-1">Logo actual:</span>
-                <img src="<?= htmlspecialchars($BASE . '/uploads/' . $currentLogo) ?>"
-                     alt="Logo actual" style="max-width:96px;max-height:96px;object-fit:contain;border-radius:8px;border:1px solid #e9ecef;">
-              </div>
-              <div class="form-check mt-3">
-                <input class="form-check-input" type="checkbox" name="delete_logo" id="delete_logo">
-                <label class="form-check-label" for="delete_logo">Eliminar logo y usar solo texto</label>
-              </div>
-            </div>
-          <?php else: ?>
-            <div class="form-text">Si no subes logo, se mostrará solo el nombre de la tienda.</div>
-          <?php endif; ?>
-        </div>
-
-        <div class="col-md-3">
-          <label class="form-label">Color primario (botones, acentos)</label>
-          <div class="d-flex align-items-center gap-2">
-            <input type="color" name="primary_color" class="form-control form-control-color"
-                   value="<?= htmlspecialchars($primaryColor) ?>" title="Color primario">
-            <input type="text" class="form-control" name="primary_color_text"
-                   value="<?= htmlspecialchars($primaryColor) ?>"
-                   oninput="this.previousElementSibling.value=this.value">
-          </div>
-        </div>
-
-        <div class="col-md-3">
-          <label class="form-label">Color secundario / texto fuerte</label>
-          <div class="d-flex align-items-center gap-2">
-            <input type="color" name="accent_color" class="form-control form-control-color"
-                   value="<?= htmlspecialchars($accentColor) ?>" title="Color secundario">
-            <input type="text" class="form-control" name="accent_color_text"
-                   value="<?= htmlspecialchars($accentColor) ?>"
-                   oninput="this.previousElementSibling.value=this.value">
-          </div>
-        </div>
-      </div>
-
-      <div class="row g-3 mb-4">
-        <div class="col-md-4">
-          <label class="form-label">Tema</label>
-          <select name="theme_mode" class="form-select">
-            <option value="light" <?= $themeMode === 'light' ? 'selected' : '' ?>>Claro</option>
-            <option value="dark"  <?= $themeMode === 'dark'  ? 'selected' : '' ?>>Oscuro</option>
-            <option value="auto"  <?= $themeMode === 'auto'  ? 'selected' : '' ?>>Automático (sistema)</option>
-          </select>
-          <div class="form-text">Luego podemos hacer que se aplique a toda la web (modo claro/oscuro).</div>
-        </div>
-      </div>
-
-      <hr class="my-4">
-
-      <!-- ================== Dirección y contacto visible ================== -->
-      <h5 class="mb-3">Datos de contacto visibles</h5>
-
-      <div class="mb-3">
-        <label class="form-label">Dirección (línea principal)</label>
-        <input type="text" name="shop_address" class="form-control"
-               placeholder="Calle, número, piso..." value="<?= htmlspecialchars($address) ?>">
-      </div>
-
-      <div class="row g-3 mb-3">
-        <div class="col-md-6">
-          <label class="form-label">Ciudad</label>
-          <input type="text" name="shop_city" class="form-control"
-                 value="<?= htmlspecialchars($city) ?>">
-        </div>
-        <div class="col-md-3">
-          <label class="form-label">Código postal</label>
-          <input type="text" name="shop_zip" class="form-control"
-                 value="<?= htmlspecialchars($zip) ?>">
-        </div>
-      </div>
-
-      <hr class="my-4">
-
-      <!-- ================== Redes sociales ================== -->
-      <h5 class="mb-3">Redes sociales</h5>
-      <div class="row g-3 mb-3">
-        <div class="col-md-4">
-          <label class="form-label">Instagram</label>
-          <input type="url" name="social_instagram" class="form-control"
-                 placeholder="https://instagram.com/tu_tienda"
-                 value="<?= htmlspecialchars($instagram) ?>">
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">Facebook</label>
-          <input type="url" name="social_facebook" class="form-control"
-                 placeholder="https://facebook.com/tu_tienda"
-                 value="<?= htmlspecialchars($facebook) ?>">
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">TikTok</label>
-          <input type="url" name="social_tiktok" class="form-control"
-                 placeholder="https://www.tiktok.com/@tu_tienda"
-                 value="<?= htmlspecialchars($tiktok) ?>">
-        </div>
-      </div>
-
-      <hr class="my-4">
-
-      <!-- ================== Pie de página ================== -->
-      <h5 class="mb-3">Pie de página</h5>
-      <div class="mb-3">
-        <label class="form-label">Texto legal / firma</label>
-        <textarea name="footer_text" rows="3" class="form-control"
-                  placeholder="© <?= date('Y') ?> Mi Tienda. Todos los derechos reservados."><?= htmlspecialchars($footer) ?></textarea>
-        <div class="form-text">
-          Este texto puede mostrarse en el footer (copyright, nombre de la tienda, etc.).
-        </div>
-      </div>
-
-      <div class="mt-4 d-flex justify-content-end gap-2">
-        <a class="btn btn-outline-secondary" href="<?= $BASE ?>/admin/index.php">Cancelar</a>
-        <button class="btn btn-primary" type="submit">Guardar configuración</button>
-      </div>
+<main class="container py-4">
+  <div class="py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h1 class="h4 mb-0">Configuración de la tienda</h1>
+      <a class="btn btn-outline-secondary" href="<?= $BASE ?>/admin/index.php">Volver al panel</a>
     </div>
-  </form>
-</div>
+
+    <form method="post" class="card shadow-sm" enctype="multipart/form-data">
+      <div class="card-body">
+        <input type="hidden" name="csrf" value="<?= htmlspecialchars(auth_csrf()) ?>">
+
+        <!-- ================== Datos generales ================== -->
+        <h5 class="mb-3">Datos generales</h5>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Nombre de la tienda *</label>
+            <input type="text" name="shop_name" class="form-control" maxlength="120"
+                  value="<?= htmlspecialchars($shop) ?>" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Slogan</label>
+            <input type="text" name="shop_slogan" class="form-control" maxlength="160"
+                  value="<?= htmlspecialchars($slogan) ?>" placeholder="Ej: Moda urbana todos los días">
+          </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <label class="form-label">WhatsApp (E.164)</label>
+            <input type="text" name="whatsapp_number" class="form-control"
+                  placeholder="+34123456789"
+                  value="<?= htmlspecialchars($wa) ?>">
+            <div class="form-text">Formato recomendado internacional, ej: +34123456789</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Email de contacto</label>
+            <input type="email" name="contact_email" class="form-control"
+                  value="<?= htmlspecialchars($email) ?>">
+          </div>
+        </div>
+
+        <hr class="my-4">
+
+        <!-- ================== Branding (Logo & colores) ================== -->
+        <h5 class="mb-3">Branding y estilo</h5>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label d-flex justify-content-between align-items-center">
+              <span>Logo de la tienda</span>
+              <small class="text-muted">Opcional • JPG/PNG/WebP/SVG • máx 2MB</small>
+            </label>
+            <input type="file" name="shop_logo_file" class="form-control"
+                  accept=".jpg,.jpeg,.png,.webp,.svg">
+
+            <?php if ($currentLogo): ?>
+              <div class="mt-2 d-flex align-items-center gap-3">
+                <div>
+                  <span class="d-block small text-muted mb-1">Logo actual:</span>
+                  <img src="<?= htmlspecialchars($BASE . '/uploads/' . $currentLogo) ?>"
+                      alt="Logo actual" style="max-width:96px;max-height:96px;object-fit:contain;border-radius:8px;border:1px solid #e9ecef;">
+                </div>
+                <div class="form-check mt-3">
+                  <input class="form-check-input" type="checkbox" name="delete_logo" id="delete_logo">
+                  <label class="form-check-label" for="delete_logo">Eliminar logo y usar solo texto</label>
+                </div>
+              </div>
+            <?php else: ?>
+              <div class="form-text">Si no subes logo, se mostrará solo el nombre de la tienda.</div>
+            <?php endif; ?>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Color primario (botones, acentos)</label>
+            <div class="d-flex align-items-center gap-2">
+              <input type="color" name="primary_color" class="form-control form-control-color"
+                    value="<?= htmlspecialchars($primaryColor) ?>" title="Color primario">
+              <input type="text" class="form-control" name="primary_color_text"
+                    value="<?= htmlspecialchars($primaryColor) ?>"
+                    oninput="this.previousElementSibling.value=this.value">
+            </div>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Color secundario / texto fuerte</label>
+            <div class="d-flex align-items-center gap-2">
+              <input type="color" name="accent_color" class="form-control form-control-color"
+                    value="<?= htmlspecialchars($accentColor) ?>" title="Color secundario">
+              <input type="text" class="form-control" name="accent_color_text"
+                    value="<?= htmlspecialchars($accentColor) ?>"
+                    oninput="this.previousElementSibling.value=this.value">
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <label class="form-label">Tema</label>
+            <select name="theme_mode" class="form-select">
+              <option value="light" <?= $themeMode === 'light' ? 'selected' : '' ?>>Claro</option>
+              <option value="dark"  <?= $themeMode === 'dark'  ? 'selected' : '' ?>>Oscuro</option>
+              <option value="auto"  <?= $themeMode === 'auto'  ? 'selected' : '' ?>>Automático (sistema)</option>
+            </select>
+            <div class="form-text">Luego podemos hacer que se aplique a toda la web (modo claro/oscuro).</div>
+          </div>
+        </div>
+
+        <hr class="my-4">
+
+        <!-- ================== Dirección y contacto visible ================== -->
+        <h5 class="mb-3">Datos de contacto visibles</h5>
+
+        <div class="mb-3">
+          <label class="form-label">Dirección (línea principal)</label>
+          <input type="text" name="shop_address" class="form-control"
+                placeholder="Calle, número, piso..." value="<?= htmlspecialchars($address) ?>">
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Ciudad</label>
+            <input type="text" name="shop_city" class="form-control"
+                  value="<?= htmlspecialchars($city) ?>">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Código postal</label>
+            <input type="text" name="shop_zip" class="form-control"
+                  value="<?= htmlspecialchars($zip) ?>">
+          </div>
+        </div>
+
+        <hr class="my-4">
+
+        <!-- ================== Redes sociales ================== -->
+        <h5 class="mb-3">Redes sociales</h5>
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <label class="form-label">Instagram</label>
+            <input type="url" name="social_instagram" class="form-control"
+                  placeholder="https://instagram.com/tu_tienda"
+                  value="<?= htmlspecialchars($instagram) ?>">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Facebook</label>
+            <input type="url" name="social_facebook" class="form-control"
+                  placeholder="https://facebook.com/tu_tienda"
+                  value="<?= htmlspecialchars($facebook) ?>">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">TikTok</label>
+            <input type="url" name="social_tiktok" class="form-control"
+                  placeholder="https://www.tiktok.com/@tu_tienda"
+                  value="<?= htmlspecialchars($tiktok) ?>">
+          </div>
+        </div>
+
+        <hr class="my-4">
+
+        <!-- ================== Pie de página ================== -->
+        <h5 class="mb-3">Pie de página</h5>
+        <div class="mb-3">
+          <label class="form-label">Texto legal / firma</label>
+          <textarea name="footer_text" rows="3" class="form-control"
+                    placeholder="© <?= date('Y') ?> Mi Tienda. Todos los derechos reservados."><?= htmlspecialchars($footer) ?></textarea>
+          <div class="form-text">
+            Este texto puede mostrarse en el footer (copyright, nombre de la tienda, etc.).
+          </div>
+        </div>
+
+        <div class="mt-4 d-flex justify-content-end gap-2">
+          <a class="btn btn-outline-secondary" href="<?= $BASE ?>/admin/index.php">Cancelar</a>
+          <button class="btn btn-primary" type="submit">Guardar configuración</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</main>
 <?php include __DIR__ . '/../templates/footer.php'; ?>

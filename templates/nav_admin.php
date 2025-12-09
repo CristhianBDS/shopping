@@ -7,11 +7,20 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . '/../inc/auth.php';
+require_once __DIR__ . '/../inc/settings.php';
 
 $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
 $user = currentUser();
 $name = $user['name'] ?? 'Administrador';
 $csrf = auth_csrf();
+
+// Nombre de la tienda desde settings (si falla, usamos valor por defecto)
+$shopName = 'Mi tienda';
+try {
+  $shopName = setting_get('shop_name', $shopName);
+} catch (Throwable $e) {
+  // si hay problema con la BD, no rompemos la navbar
+}
 
 // Ruta actual (solo path: /shopping/admin/..., sin dominio)
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '/';
@@ -28,7 +37,9 @@ $active = function (string $subPath) use ($path, $basePath): string {
 ?>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom fixed-top" id="adminNav">
   <div class="container">
-    <a class="navbar-brand fw-bold" href="<?= $BASE ?>/admin/index.php">Admin</a>
+    <a class="navbar-brand fw-bold" href="<?= $BASE ?>/admin/index.php">
+      <?= htmlspecialchars((string)$shopName) ?> · Admin
+    </a>
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navAdmin"
             aria-controls="navAdmin" aria-expanded="false" aria-label="Toggle navigation">
