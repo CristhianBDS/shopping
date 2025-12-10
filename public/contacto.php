@@ -2,7 +2,7 @@
 // public/contacto.php — Página de contacto (3 pantallas)
 require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/bootstrap.php';
-
+require_once __DIR__ . '/../inc/auth.php';
 $CONTEXT   = 'public';
 $PAGE_TITLE = 'Contacto';
 $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';

@@ -2,6 +2,7 @@
 // public/gracias_contacto.php — Confirmación de contacto
 require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/bootstrap.php';
+require_once __DIR__ . '/../inc/auth.php';
 
 $CONTEXT    = 'public';
 $PAGE_TITLE = 'Gracias por contactarnos';

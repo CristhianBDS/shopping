@@ -1,149 +1,275 @@
 <?php
-// public/cuenta.php — Configuración de cuenta (perfil + contraseña)
-require_once __DIR__ . '/../config/bootstrap.php';
+// public/cuenta.php — Panel de cuenta para usuarios logueados
+
 require_once __DIR__ . '/../config/app.php';
+require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../config/db.php';
-require_once __DIR__ . '/../inc/flash.php';
 require_once __DIR__ . '/../inc/auth.php';
 
 $CONTEXT    = 'public';
 $PAGE_TITLE = 'Mi cuenta';
 $BASE       = defined('BASE_URL') ? BASE_URL : '/shopping';
 
+// Solo usuarios con sesión
 requireLogin();
-$user = currentUser();
-$uid  = (int)$user['id'];
 
-$pdo = getConnection();
+$user   = currentUser();
+$userId = $user['id'] ?? null;
 
-// Carga actual
-$st = $pdo->prepare('SELECT id, name, email FROM users WHERE id = ? LIMIT 1');
-$st->execute([$uid]);
-$u = $st->fetch(PDO::FETCH_ASSOC);
-if (!$u) { http_response_code(404); die('Usuario no encontrado'); }
+// =========================
+// Métricas del socio
+// =========================
+$totalAmount = 0.0;
+$countOrders = 0;
+$lastOrder   = null;
+$nivel       = 'Nuevo';
 
-$csrf = auth_csrf();
-$errors = [];
-$tab = $_GET['tab'] ?? 'perfil'; // 'perfil' | 'password'
+if ($userId) {
+    $pdo = getConnection();
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-// POST actualizar perfil
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $token = $_POST['csrf'] ?? '';
-  if (!verify_csrf($token)) {
-    $errors[] = 'CSRF inválido. Recarga la página.';
-  } else {
-    if (isset($_POST['action']) && $_POST['action'] === 'perfil') {
-      $name  = trim((string)($_POST['name'] ?? ''));
-      $email = trim((string)($_POST['email'] ?? ''));
+    // Total gastado (excluyendo cancelados)
+    $stmtTotal = $pdo->prepare("
+        SELECT COALESCE(SUM(total_amount), 0) AS total
+        FROM orders
+        WHERE user_id = :uid
+          AND status <> 'cancelado'
+    ");
+    $stmtTotal->execute([':uid' => $userId]);
+    $totalAmount = (float)$stmtTotal->fetchColumn();
 
-      if ($name === '')  $errors[] = 'El nombre no puede estar vacío.';
-      if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Email inválido.';
+    // Número de pedidos
+    $stmtCount = $pdo->prepare("
+        SELECT COUNT(*) AS c
+        FROM orders
+        WHERE user_id = :uid
+          AND status <> 'cancelado'
+    ");
+    $stmtCount->execute([':uid' => $userId]);
+    $countOrders = (int)$stmtCount->fetchColumn();
 
-      if (!$errors) {
-        // ¿email ocupado por otro?
-        $st = $pdo->prepare('SELECT id FROM users WHERE email = ? AND id <> ? LIMIT 1');
-        $st->execute([$email, $uid]);
-        if ($st->fetch()) {
-          $errors[] = 'Ese email ya está en uso por otra cuenta.';
-        } else {
-          $st = $pdo->prepare('UPDATE users SET name = ?, email = ?, updated_at = NOW() WHERE id = ? LIMIT 1');
-          $st->execute([$name, $email, $uid]);
+    // Último pedido
+    $stmtLast = $pdo->prepare("
+        SELECT id, total_amount, status, created_at
+        FROM orders
+        WHERE user_id = :uid
+        ORDER BY created_at DESC
+        LIMIT 1
+    ");
+    $stmtLast->execute([':uid' => $userId]);
+    $lastOrder = $stmtLast->fetch(PDO::FETCH_ASSOC) ?: null;
 
-          // Refrescar sesión
-          $_SESSION['user']['name']  = $name;
-          $_SESSION['user']['email'] = $email;
-
-          flash_success('Perfil actualizado.');
-          header('Location: '.$BASE.'/public/cuenta.php?tab=perfil'); exit;
-        }
-      }
-      $tab = 'perfil';
+    // Nivel según lo gastado
+    if ($totalAmount >= 300) {
+        $nivel = 'Oro';
+    } elseif ($totalAmount >= 150) {
+        $nivel = 'Plata';
+    } elseif ($totalAmount > 0) {
+        $nivel = 'Bronce';
     }
-
-    // Cambio de contraseña
-    if (isset($_POST['action']) && $_POST['action'] === 'password') {
-      $current = (string)($_POST['current_password'] ?? '');
-      $pwd1    = (string)($_POST['new_password'] ?? '');
-      $pwd2    = (string)($_POST['new_password2'] ?? '');
-
-      if ($current === '' || $pwd1 === '' || $pwd2 === '') $errors[] = 'Completa todos los campos.';
-      if (strlen($pwd1) < 6) $errors[] = 'La nueva contraseña debe tener al menos 6 caracteres.';
-      if ($pwd1 !== $pwd2)  $errors[] = 'La nueva contraseña no coincide.';
-
-      if (!$errors) {
-        // Verificar contraseña actual
-        $st = $pdo->prepare('SELECT password_hash FROM users WHERE id = ? LIMIT 1');
-        $st->execute([$uid]);
-        $row = $st->fetch(PDO::FETCH_ASSOC);
-        if (!$row || !password_verify($current, (string)$row['password_hash'])) {
-          $errors[] = 'La contraseña actual es incorrecta.';
-        } else {
-          $hash = password_hash($pwd1, PASSWORD_DEFAULT);
-          $st = $pdo->prepare('UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ? LIMIT 1');
-          $st->execute([$hash, $uid]);
-          flash_success('Contraseña actualizada.');
-          header('Location: '.$BASE.'/public/cuenta.php?tab=password'); exit;
-        }
-      }
-      $tab = 'password';
-    }
-  }
 }
 
 include __DIR__ . '/../templates/header.php';
 ?>
-<section class="container py-5">
-  <h1 class="mb-4">Mi cuenta</h1>
 
-  <?php if ($errors): ?>
-    <div class="alert alert-danger"><ul class="mb-0"><?php foreach ($errors as $e): ?><li><?= htmlspecialchars($e) ?></li><?php endforeach; ?></ul></div>
-  <?php endif; ?>
+<main class="page page-cuenta py-4 py-md-5">
+  <section class="container">
 
-  <ul class="nav nav-tabs mb-3">
-    <li class="nav-item">
-      <a class="nav-link <?= $tab==='perfil'?'active':'' ?>" href="<?= $BASE ?>/public/cuenta.php?tab=perfil">Perfil</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link <?= $tab==='password'?'active':'' ?>" href="<?= $BASE ?>/public/cuenta.php?tab=password">Contraseña</a>
-    </li>
-  </ul>
+    <header class="mb-4 mb-md-5">
+      <h1 class="mb-0">Mi cuenta</h1>
+    </header>
 
-  <?php if ($tab === 'password'): ?>
-    <form method="post" class="card" style="max-width: 560px;">
-      <div class="card-body">
-        <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
-        <input type="hidden" name="action" value="password">
-        <div class="mb-3">
-          <label class="form-label">Contraseña actual</label>
-          <input type="password" name="current_password" class="form-control" required>
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-4" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button
+          class="nav-link active"
+          id="tab-perfil-tab"
+          data-bs-toggle="tab"
+          data-bs-target="#tab-perfil"
+          type="button"
+          role="tab"
+          aria-controls="tab-perfil"
+          aria-selected="true">
+          Perfil
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button
+          class="nav-link"
+          id="tab-password-tab"
+          data-bs-toggle="tab"
+          data-bs-target="#tab-password"
+          type="button"
+          role="tab"
+          aria-controls="tab-password"
+          aria-selected="false">
+          Contraseña
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button
+          class="nav-link"
+          id="tab-resumen-tab"
+          data-bs-toggle="tab"
+          data-bs-target="#tab-resumen"
+          type="button"
+          role="tab"
+          aria-controls="tab-resumen"
+          aria-selected="false">
+          Resumen
+        </button>
+      </li>
+    </ul>
+
+    <div class="tab-content">
+
+      <!-- PERFIL -->
+      <div
+        class="tab-pane fade show active"
+        id="tab-perfil"
+        role="tabpanel"
+        aria-labelledby="tab-perfil-tab">
+
+        <div class="card border-0 shadow-sm">
+          <div class="card-body">
+            <div class="mb-3">
+              <label class="form-label">Nombre</label>
+              <input
+                type="text"
+                class="form-control"
+                value="<?= htmlspecialchars($user['name'] ?? '') ?>"
+                disabled>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Email</label>
+              <input
+                type="email"
+                class="form-control"
+                value="<?= htmlspecialchars($user['email'] ?? '') ?>"
+                disabled>
+            </div>
+
+            <p class="text-muted small mb-0">
+              Estos datos se configuraron al crear tu cuenta.
+              Si necesitas modificarlos, puedes contactarnos por nuestros canales de ayuda.
+            </p>
+          </div>
         </div>
-        <div class="mb-3">
-          <label class="form-label">Nueva contraseña</label>
-          <input type="password" name="new_password" class="form-control" required minlength="6">
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Repetir nueva contraseña</label>
-          <input type="password" name="new_password2" class="form-control" required minlength="6">
-        </div>
-        <button class="btn btn-primary">Actualizar contraseña</button>
       </div>
-    </form>
-  <?php else: ?>
-    <form method="post" class="card" style="max-width: 560px;">
-      <div class="card-body">
-        <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
-        <input type="hidden" name="action" value="perfil">
-        <div class="mb-3">
-          <label class="form-label">Nombre</label>
-          <input type="text" name="name" class="form-control" required value="<?= htmlspecialchars($u['name']) ?>">
+
+      <!-- CONTRASEÑA -->
+      <div
+        class="tab-pane fade"
+        id="tab-password"
+        role="tabpanel"
+        aria-labelledby="tab-password-tab">
+
+        <div class="card border-0 shadow-sm">
+          <div class="card-body">
+            <p class="text-muted small mb-3">
+              Aquí podrás cambiar tu contraseña en futuras versiones del sistema.
+              De momento, si necesitas actualizarla, escríbenos directamente y te ayudamos.
+            </p>
+
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Contraseña actual</label>
+                <input type="password" class="form-control" disabled placeholder="Función en desarrollo">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Nueva contraseña</label>
+                <input type="password" class="form-control" disabled placeholder="Función en desarrollo">
+              </div>
+            </div>
+
+            <button type="button" class="btn btn-primary mt-3" disabled>
+              Guardar cambios
+            </button>
+          </div>
         </div>
-        <div class="mb-3">
-          <label class="form-label">Email</label>
-          <input type="email" name="email" class="form-control" required value="<?= htmlspecialchars($u['email']) ?>">
-        </div>
-        <button class="btn btn-primary">Guardar cambios</button>
       </div>
-    </form>
-  <?php endif; ?>
-</section>
+
+      <!-- RESUMEN -->
+      <div
+        class="tab-pane fade"
+        id="tab-resumen"
+        role="tabpanel"
+        aria-labelledby="tab-resumen-tab">
+
+        <!-- Tarjetas con métricas -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-0">
+              <div class="card-body">
+                <p class="text-muted mb-1 small">Nivel actual</p>
+                <p class="h5 mb-0">
+                  <?= htmlspecialchars($nivel) ?>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-0">
+              <div class="card-body">
+                <p class="text-muted mb-1 small">Total gastado</p>
+                <p class="h5 mb-0">
+                  <?= number_format($totalAmount, 2, ',', '.') ?> €
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-0">
+              <div class="card-body">
+                <p class="text-muted mb-1 small">Pedidos realizados</p>
+                <p class="h5 mb-0">
+                  <?= (int)$countOrders ?>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Último pedido -->
+        <?php if ($lastOrder): ?>
+          <div class="card shadow-sm border-0 mb-3">
+            <div class="card-body small">
+              <p class="text-muted mb-2">Último pedido</p>
+              <p class="mb-1">
+                <strong>#<?= (int)$lastOrder['id'] ?></strong>
+                · <?= number_format((float)$lastOrder['total_amount'], 2, ',', '.') ?> €
+              </p>
+              <p class="mb-0 text-muted">
+                Estado: <?= htmlspecialchars($lastOrder['status']) ?> ·
+                Fecha: <?= htmlspecialchars($lastOrder['created_at']) ?>
+              </p>
+            </div>
+          </div>
+        <?php else: ?>
+          <p class="text-muted">
+            Aún no has realizado ningún pedido como socio.
+            Tu primera compra ya contará para tus beneficios.
+          </p>
+        <?php endif; ?>
+
+        <!-- Enlaces útiles -->
+        <div class="mt-4">
+          <a href="<?= htmlspecialchars($BASE) ?>/public/pedidos.php" class="btn btn-outline-primary btn-sm">
+            Ver historial de pedidos
+          </a>
+          <a href="<?= htmlspecialchars($BASE) ?>/public/beneficios.php" class="btn btn-link btn-sm">
+            Ver todos los beneficios de socio
+          </a>
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+</main>
+
 <?php include __DIR__ . '/../templates/footer.php'; ?>

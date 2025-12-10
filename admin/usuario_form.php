@@ -1,5 +1,5 @@
 <?php
-// admin/usuario_form.php — Alta/Edición de usuario
+// admin/usuario_form.php — Crear / editar usuario (adaptado a nombre real de columna de contraseña)
 declare(strict_types=1);
 
 require_once __DIR__ . '/../config/app.php';
@@ -12,209 +12,343 @@ $CONTEXT    = 'admin';
 $PAGE_TITLE = 'Usuario';
 $BASE       = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '/shopping';
 
-// Solo admin
 requireAdmin();
 
-$pdo = getConnection();
+$pdo   = getConnection();
+$csrf  = auth_csrf();
 
-// CSRF
-if (empty($_SESSION['csrf_user_form'])) {
-  $_SESSION['csrf_user_form'] = bin2hex(random_bytes(32));
+/**
+ * Detecta el nombre real de la columna de contraseña en la tabla users.
+ * Busca entre varios candidatos y devuelve el nombre EXACTO (con su case).
+ * Si no encuentra ninguno, devuelve null.
+ */
+function user_password_column(PDO $pdo): ?string {
+    static $cached = null;
+    if ($cached !== null) {
+        return $cached;
+    }
+
+    try {
+        $st = $pdo->query('SHOW COLUMNS FROM users');
+        $cols = $st->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Throwable $e) {
+        return null;
+    }
+
+    $candidates = ['password', 'pass', 'passwd', 'password_hash', 'hash'];
+
+    foreach ($cols as $col) {
+        $field = $col['Field'] ?? '';
+        $low   = strtolower((string)$field);
+        foreach ($candidates as $cand) {
+            if ($low === strtolower($cand)) {
+                $cached = $field; // nombre tal cual en la tabla
+                return $cached;
+            }
+        }
+    }
+
+    return null;
 }
-$csrf = $_SESSION['csrf_user_form'];
 
+$PWD_COL = user_password_column($pdo);
+
+// ============================
+//  Detectar modo (nuevo / edit)
+// ============================
 $id   = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-$edit = $id > 0;
+$mode = $id > 0 ? 'edit' : 'create';
 
-$name = '';
-$email = '';
-$role = 'user';
+// Valores por defecto
+$name      = '';
+$email     = '';
+$role      = 'member'; // internamente 'member' = "user"
 $is_active = 1;
 
-if ($edit) {
-  $st = $pdo->prepare('SELECT id, name, email, role, is_active FROM users WHERE id = ? LIMIT 1');
-  $st->execute([$id]);
-  $row = $st->fetch(PDO::FETCH_ASSOC);
+// Si es edición, cargar registro
+if ($mode === 'edit') {
+    $st = $pdo->prepare('SELECT id, name, email, role, is_active FROM users WHERE id = ? LIMIT 1');
+    $st->execute([$id]);
+    $row = $st->fetch(PDO::FETCH_ASSOC);
 
-  if (!$row) {
-    flash_error('Usuario no encontrado.');
-    header('Location: ' . $BASE . '/admin/usuarios.php');
-    exit;
-  }
+    if (!$row) {
+        flash_error('Usuario no encontrado.');
+        header('Location: ' . $BASE . '/admin/usuarios.php');
+        exit;
+    }
 
-  $name      = (string)$row['name'];
-  $email     = (string)$row['email'];
-  $role      = (string)$row['role'];
-  $is_active = (int)$row['is_active'];
+    $name      = (string)$row['name'];
+    $email     = (string)$row['email'];
+    $role      = (string)$row['role'];
+    $is_active = (int)$row['is_active'];
 }
 
-// POST
-$errors = [];
+// ============================
+//  Procesar POST
+// ============================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $token = $_POST['csrf'] ?? '';
-  if (!hash_equals($_SESSION['csrf_user_form'] ?? '', $token)) {
-    $errors[] = 'CSRF inválido. Recarga la página.';
-  }
+    $token = $_POST['csrf'] ?? '';
+    if (!verify_csrf($token)) {
+        flash_error('Token CSRF inválido. Recarga la página e inténtalo de nuevo.');
+        header('Location: ' . $BASE . '/admin/usuario_form.php' . ($mode === 'edit' ? ('?id=' . $id) : ''));
+        exit;
+    }
 
-  $name      = trim((string)($_POST['name'] ?? ''));
-  $email     = trim((string)($_POST['email'] ?? ''));
-  $rolePost  = (string)($_POST['role'] ?? 'user');
-  $role      = ($rolePost === 'admin') ? 'admin' : 'user'; // normaliza
-  $is_active = isset($_POST['is_active']) ? 1 : 0;
-  $pwd       = (string)($_POST['password'] ?? '');
-  $pwd2      = (string)($_POST['password2'] ?? '');
+    // Recolectar datos
+    $name      = trim((string)($_POST['name'] ?? ''));
+    $email     = trim((string)($_POST['email'] ?? ''));
+    $role      = trim((string)($_POST['role'] ?? 'member'));
+    $is_active = !empty($_POST['is_active']) ? 1 : 0;
 
-  if ($name === '' || $email === '') {
-    $errors[] = 'Nombre y email son obligatorios.';
-  }
-  if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    $errors[] = 'Email inválido.';
-  }
-  if (!$edit && $pwd === '') {
-    $errors[] = 'La contraseña es obligatoria en el alta.';
-  }
-  if ($pwd !== '' && $pwd !== $pwd2) {
-    $errors[] = 'Las contraseñas no coinciden.';
-  }
+    $password        = (string)($_POST['password'] ?? '');
+    $password_repeat = (string)($_POST['password_repeat'] ?? '');
 
-  // Unicidad de email
-  $chk = $pdo->prepare('SELECT id FROM users WHERE email = ? AND id <> ? LIMIT 1');
-  $chk->execute([$email, $id]);
-  if ($chk->fetch()) {
-    $errors[] = 'Ya existe un usuario con ese email.';
-  }
+    // Normalizar rol: mostramos "user" pero almacenamos "member"
+    if ($role === 'user') {
+        $role = 'member';
+    }
 
-  if (!$errors) {
-    try {
-      if ($edit) {
-        if ($pwd !== '') {
-          $hash = password_hash($pwd, PASSWORD_DEFAULT);
-          $st = $pdo->prepare("
-            UPDATE users
-              SET name = ?, email = ?, role = ?, is_active = ?, password_hash = ?, updated_at = NOW()
-            WHERE id = ? LIMIT 1
-          ");
-          $st->execute([$name, $email, $role, $is_active, $hash, $id]);
-        } else {
-          $st = $pdo->prepare("
-            UPDATE users
-              SET name = ?, email = ?, role = ?, is_active = ?, updated_at = NOW()
-            WHERE id = ? LIMIT 1
-          ");
-          $st->execute([$name, $email, $role, $is_active, $id]);
+    $errors = [];
+
+    // Validaciones básicas
+    if ($name === '') {
+        $errors[] = 'El nombre es obligatorio.';
+    }
+    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors[] = 'El email no es válido.';
+    }
+    if (!in_array($role, ['admin', 'member'], true)) {
+        $errors[] = 'Rol inválido.';
+    }
+
+    // Si no tenemos columna de contraseña, avisamos (no intentamos guardar nada)
+    if (!$PWD_COL) {
+        $errors[] = 'No se encontró ninguna columna de contraseña en la tabla "users" '
+                  . '(se esperaba alguna de: password, pass, passwd, password_hash, hash). '
+                  . 'Revisa la estructura de la base de datos.';
+    }
+
+    // Contraseña:
+    // - Crear: obligatoria si existe columna
+    // - Editar: opcional (solo si quieres cambiarla)
+    $changePassword = false;
+    if ($PWD_COL) {
+        if ($mode === 'create') {
+            if ($password === '' || strlen($password) < 6) {
+                $errors[] = 'La contraseña es obligatoria y debe tener al menos 6 caracteres.';
+            }
+            if ($password !== $password_repeat) {
+                $errors[] = 'Las contraseñas no coinciden.';
+            } else {
+                $changePassword = true;
+            }
+        } else { // edit
+            if ($password !== '' || $password_repeat !== '') {
+                if ($password === '' || strlen($password) < 6) {
+                    $errors[] = 'Si cambias la contraseña, debe tener al menos 6 caracteres.';
+                }
+                if ($password !== $password_repeat) {
+                    $errors[] = 'Las contraseñas no coinciden.';
+                } else {
+                    $changePassword = true;
+                }
+            }
         }
-        flash_success('Usuario actualizado.');
-      } else {
-        $hash = password_hash($pwd, PASSWORD_DEFAULT);
-        $st = $pdo->prepare("
-          INSERT INTO users (name, email, role, is_active, password_hash, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, NOW(), NOW())
-        ");
-        $st->execute([$name, $email, $role, $is_active, $hash]);
-        flash_success('Usuario creado.');
-      }
+    }
 
-      unset($_SESSION['csrf_user_form']);
-      header('Location: ' . $BASE . '/admin/usuarios.php');
-      exit;
+    // Comprobar email duplicado
+    if (!$errors) {
+        if ($mode === 'create') {
+            $st = $pdo->prepare('SELECT COUNT(*) FROM users WHERE email = ?');
+            $st->execute([$email]);
+        } else {
+            $st = $pdo->prepare('SELECT COUNT(*) FROM users WHERE email = ? AND id <> ?');
+            $st->execute([$email, $id]);
+        }
+        $exists = (int)$st->fetchColumn() > 0;
+
+        if ($exists) {
+            $errors[] = 'Ya existe un usuario con ese email.';
+        }
+    }
+
+    // Si hay errores, volver al formulario
+    if ($errors) {
+        foreach ($errors as $e) {
+            flash_error($e);
+        }
+        header('Location: ' . $BASE . '/admin/usuario_form.php' . ($mode === 'edit' ? ('?id=' . $id) : ''));
+        exit;
+    }
+
+    // ============================
+    //  Guardar en BD
+    // ============================
+    try {
+        if ($mode === 'create') {
+            $hash = password_hash($password, PASSWORD_DEFAULT);
+
+            // INSERT usando el nombre real de la columna de contraseña
+            $sql = "
+                INSERT INTO users (name, email, `{$PWD_COL}`, role, is_active, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+            ";
+            $st = $pdo->prepare($sql);
+            $st->execute([$name, $email, $hash, $role, $is_active]);
+
+            flash_success('Usuario creado correctamente.');
+        } else {
+            if ($changePassword) {
+                $hash = password_hash($password, PASSWORD_DEFAULT);
+                $sql = "
+                    UPDATE users
+                    SET name = ?, email = ?, `{$PWD_COL}` = ?, role = ?, is_active = ?, updated_at = NOW()
+                    WHERE id = ?
+                    LIMIT 1
+                ";
+                $st = $pdo->prepare($sql);
+                $st->execute([$name, $email, $hash, $role, $is_active, $id]);
+            } else {
+                $sql = "
+                    UPDATE users
+                    SET name = ?, email = ?, role = ?, is_active = ?, updated_at = NOW()
+                    WHERE id = ?
+                    LIMIT 1
+                ";
+                $st = $pdo->prepare($sql);
+                $st->execute([$name, $email, $role, $is_active, $id]);
+            }
+
+            flash_success('Usuario actualizado correctamente.');
+        }
+
+        header('Location: ' . $BASE . '/admin/usuarios.php');
+        exit;
 
     } catch (Throwable $e) {
-      flash_error('Error al guardar el usuario.');
-      if (defined('DEBUG') && DEBUG) {
-        flash_error($e->getMessage());
-      }
+        flash_error('Ocurrió un error al guardar el usuario.');
+        if (defined('DEBUG') && DEBUG) {
+            flash_error('DB: ' . $e->getMessage());
+        }
+        header('Location: ' . $BASE . '/admin/usuario_form.php' . ($mode === 'edit' ? ('?id=' . $id) : ''));
+        exit;
     }
-  }
 }
 
+// ============================
+//  Render formulario
+// ============================
 include __DIR__ . '/../templates/header.php';
 ?>
-<h1 class="h4 mb-3"><?= $edit ? 'Editar usuario' : 'Nuevo usuario' ?></h1>
-
-<?php if ($errors): ?>
-  <div class="alert alert-danger">
-    <ul class="mb-0">
-      <?php foreach ($errors as $e): ?>
-        <li><?= htmlspecialchars($e) ?></li>
-      <?php endforeach; ?>
-    </ul>
-  </div>
-<?php endif; ?>
-
-<form method="post" class="form-container" autocomplete="off" novalidate>
-  <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
-
-  <div class="mb-3">
-    <label class="form-label">Nombre</label>
-    <input
-      type="text"
-      name="name"
-      class="form-control"
-      required
-      value="<?= htmlspecialchars($name) ?>">
+<main class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 mb-0">
+      <?= $mode === 'edit' ? 'Editar usuario' : 'Nuevo usuario' ?>
+    </h1>
+    <a class="btn btn-outline-secondary" href="<?= $BASE ?>/admin/usuarios.php">← Volver al listado</a>
   </div>
 
-  <div class="mb-3">
-    <label class="form-label">Email</label>
-    <input
-      type="email"
-      name="email"
-      class="form-control"
-      required
-      value="<?= htmlspecialchars($email) ?>">
-  </div>
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <form method="post" novalidate>
+        <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
 
-  <div class="row">
-    <div class="col-md-4 mb-3">
-      <label class="form-label">Rol</label>
-      <select name="role" class="form-select">
-        <option value="user"  <?= $role === 'user'  ? 'selected' : '' ?>>user</option>
-        <option value="admin" <?= $role === 'admin' ? 'selected' : '' ?>>admin</option>
-      </select>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Nombre completo</label>
+            <input
+              type="text"
+              name="name"
+              class="form-control"
+              required
+              value="<?= htmlspecialchars($name) ?>">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Email</label>
+            <input
+              type="email"
+              name="email"
+              class="form-control"
+              required
+              value="<?= htmlspecialchars($email) ?>">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Rol</label>
+            <select name="role" class="form-select">
+              <option value="admin"  <?= $role === 'admin'  ? 'selected' : '' ?>>admin</option>
+              <option value="member" <?= $role === 'member' ? 'selected' : '' ?>>user</option>
+            </select>
+            <div class="form-text">
+              "user" se guarda internamente como <code>member</code>.
+            </div>
+          </div>
+
+          <div class="col-md-4 d-flex align-items-center mt-4">
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                name="is_active"
+                id="is_active"
+                value="1"
+                <?= $is_active ? 'checked' : '' ?>>
+              <label class="form-check-label" for="is_active">
+                Usuario activo
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <hr class="my-4">
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">
+              Contraseña <?= $mode === 'edit' ? '(opcional)' : '*' ?>
+            </label>
+            <input
+              type="password"
+              name="password"
+              class="form-control"
+              <?= ($mode === 'create' && $PWD_COL) ? 'required' : '' ?>>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">
+              Repetir contraseña <?= $mode === 'edit' ? '(opcional)' : '*' ?>
+            </label>
+            <input
+              type="password"
+              name="password_repeat"
+              class="form-control"
+              <?= ($mode === 'create' && $PWD_COL) ? 'required' : '' ?>>
+          </div>
+
+          <div class="col-12">
+            <div class="form-text">
+              <?php if (!$PWD_COL): ?>
+                Atención: no se detectó un campo de contraseña en la tabla <code>users</code>.
+                Revisa la estructura de la base de datos.
+              <?php elseif ($mode === 'create'): ?>
+                La contraseña debe tener al menos 6 caracteres.
+              <?php else: ?>
+                Si dejas la contraseña en blanco, se mantendrá la actual.
+              <?php endif; ?>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 d-flex justify-content-end gap-2">
+          <a class="btn btn-outline-secondary" href="<?= $BASE ?>/admin/usuarios.php">Cancelar</a>
+          <button type="submit" class="btn btn-primary">
+            <?= $mode === 'edit' ? 'Guardar cambios' : 'Crear usuario' ?>
+          </button>
+        </div>
+      </form>
     </div>
-    <div class="col-md-4 mb-3 d-flex align-items-end">
-      <div class="form-check">
-        <input
-          class="form-check-input"
-          type="checkbox"
-          name="is_active"
-          id="is_active"
-          <?= $is_active ? 'checked' : '' ?>>
-        <label class="form-check-label" for="is_active">Activo</label>
-      </div>
-    </div>
   </div>
-
-  <hr>
-
-  <div class="mb-2">
-    <strong>Contraseña</strong>
-    <small class="text-muted d-block">
-      <?= $edit ? 'Déjala vacía para no cambiarla.' : 'Obligatoria para crear.' ?>
-    </small>
-  </div>
-
-  <div class="row">
-    <div class="col-md-6 mb-3">
-      <input
-        type="password"
-        name="password"
-        class="form-control"
-        placeholder="Nueva contraseña">
-    </div>
-    <div class="col-md-6 mb-3">
-      <input
-        type="password"
-        name="password2"
-        class="form-control"
-        placeholder="Repetir contraseña">
-    </div>
-  </div>
-
-  <div class="d-flex gap-2">
-    <a class="btn btn-outline-secondary" href="<?= $BASE ?>/admin/usuarios.php">Volver</a>
-    <button class="btn btn-primary">Guardar</button>
-  </div>
-</form>
+</main>
 
 <?php include __DIR__ . '/../templates/footer.php'; ?>

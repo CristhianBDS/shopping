@@ -1,289 +1,100 @@
-/* ===== Utilidades comunes de la tienda ===== */
-.page { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
-.muted { color:#6b7280; }
-.badge { font-size:.75rem; padding:.2rem .5rem; border-radius:999px; border:1px solid #e5e7eb; background:#fff; }
-.btn { display:inline-flex; gap:.5rem; align-items:center; padding:.6rem 1rem; border-radius:10px; border:1px solid #111827; background:#111827; color:#fff; cursor:pointer; }
-.btn.secondary { background:#fff; color:#111827; }
-.search { padding:.5rem .75rem; border:1px solid #e5e7eb; border-radius: 8px; width: 240px; }
-.empty { padding:2rem; text-align:center; color:#6b7280; border:1px dashed #e5e7eb; border-radius:12px; background:#fff; }
+/* =========================================================
+   SISTEMA DE DISEÑO GLOBAL · COLORES Y TEMA
+   ========================================================= */
 
-/* ===== Catálogo ===== */
-.catalogo-header { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem; }
-.catalogo-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:1rem; }
-.card { border:1px solid #e5e7eb; border-radius:12px; padding:.75rem; display:flex; flex-direction:column; gap:.5rem; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.04); transition:transform .12s ease, box-shadow .12s ease; }
-.card:hover { transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,.08); }
-.card img { width:100%; height:200px; object-fit:cover; border-radius:10px; }
-.card .name { font-weight:600; font-size:1rem; }
-.card .price { font-weight:700; }
-
-
-
-/* ===== Detalle de producto ===== */
-.back { display:inline-flex; gap:.4rem; align-items:center; margin-bottom:1rem; }
-.product-wrap { display:grid; grid-template-columns:1fr 1fr; gap:2rem; }
-.product-wrap img { width:100%; max-height:520px; object-fit:cover; border-radius:12px; border:1px solid #e5e7eb; }
-.product-title { font-size:1.6rem; font-weight:700; margin:.2rem 0 .6rem; }
-.product-price { font-size:1.4rem; font-weight:700; margin:.8rem 0; }
-.qty { width:80px; padding:.4rem .5rem; border:1px solid #e5e7eb; border-radius:8px; }
-/* NUEVA clase local (opcional para detalle) */
-.product-row {display:flex;gap:.75rem;align-items:center;margin-top:1rem;}
-
-@media(max-width:860px){ .product-wrap{ grid-template-columns:1fr; } }
-
-/* Botón carrito flotante en detalle */
-.cart-fab { position:fixed; top:12px; right:12px; background:#111827; color:#fff; border-radius:999px; padding:.5rem .8rem; }
-
-/* ===== Carrito ===== */
-.cart-top { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem; }
-.cart-grid { display:grid; grid-template-columns:1fr 330px; gap:1.25rem; }
-.card-box { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:1rem; }
-table { width:100%; border-collapse:collapse; }
-th,td { padding:.6rem .4rem; border-bottom:1px solid #f0f0f0; vertical-align:middle; }
-.right { text-align:right; }
-.total { font-weight:700; font-size:1.2rem; }
-.item { display:flex; gap:.8rem; align-items:center; }
-.thumb { width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb; }
-@media(max-width:980px){ .cart-grid{ grid-template-columns:1fr; } }
-/* ===== Checkout ===== */
-.checkout-top { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem; }
-.checkout-grid { display:grid; grid-template-columns: 1fr 360px; gap:1.25rem; }
-.ck-form label { display:block; font-size:.95rem; margin-bottom:.75rem; }
-.ck-form input, .ck-form textarea {
-  width:100%; padding:.55rem .7rem; border:1px solid #e5e7eb; border-radius:8px; font: inherit;
-}
-.ck-form .row-2 { display:grid; grid-template-columns: 1fr 1fr; gap:.75rem; }
-.ck-form h3 { margin-top:1rem; margin-bottom:.5rem; }
-.pay-methods { display:flex; gap:1rem; align-items:center; margin-bottom:1rem; }
-
-.ck-list { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:.6rem; }
-.ck-item { display:grid; grid-template-columns: 64px 1fr auto; gap:.6rem; align-items:center; }
-.ck-item img { width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb; }
-.ck-item .name { font-weight:600; }
-
-.ck-totals { display:flex; flex-direction:column; gap:.4rem; }
-.ck-totals > div { display:flex; justify-content:space-between; }
-.ck-totals .total { font-size:1.2rem; font-weight:700; margin-top:.3rem; }
-
-@media (max-width: 980px){
-  .checkout-grid { grid-template-columns: 1fr; }
-  .ck-form .row-2 { grid-template-columns: 1fr; }
-}
-/* ===========================================================
-   🧩 ESTILOS GENERALES DE FORMULARIOS, LOGIN Y REGISTRO
-   =========================================================== */
-
-/* Contenedor base para formularios */
-.form-container {
-  max-width: 600px;
-  margin: 2rem auto;
-  background-color: #fff;
-  padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-/* Versión más compacta para login */
-.form-auth {
-  max-width: 460px;
-  margin: 2rem auto;
-  background-color: #fff;
-  padding: 1.5rem;
-  border-radius: 10px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
-/* Inputs y selects */
-.form-container input,
-.form-container select,
-.form-container textarea,
-.form-auth input {
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  padding: 0.55rem 0.75rem;
-  transition: all 0.2s ease;
-}
-
-.form-container input:focus,
-.form-container select:focus,
-.form-auth input:focus {
-  border-color: #0066FF;
-  box-shadow: 0 0 0 2px rgba(53, 99, 168, 0.25);
-  outline: none;
-}
-
-/* Botones */
-.btn {
-  border-radius: 6px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.btn-primary {
-  background-color: #0066FF;
-  border-color: #0066FF;
-}
-
-.btn-primary:hover {
-  background-color: #0052cc;
-  border-color: #004bb5;
-}
-
-.btn-outline-primary {
-  color: #0066FF;
-  border-color: #0066FF;
-}
-
-.btn-outline-primary:hover {
-  background-color: #0066FF;
-  color: #fff;
-}
-
-/* ===========================================================
-   👤 BOTÓN DE CUENTA (PUBLIC NAV)
-   =========================================================== */
-.btn-account {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  border-radius: 50px;
-  padding: 0.45rem 0.9rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.btn-account .icon-account {
-  font-size: 1.25rem;
-  line-height: 1;
-}
-
-/* Hover visual más agradable */
-.btn-account:hover {
-  transform: translateY(-1px);
-  background-color: rgba(0, 102, 255, 0.1);
-}
-
-/* ===========================================================
-   ⚠️ ALERTAS Y FLASH MESSAGES
-   =========================================================== */
-.flash-container {
-  margin: 1rem auto;
-  max-width: 600px;
-}
-
-.flash-container .alert {
-  border-radius: 6px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-}
-
-/* ===========================================================
-   🧱 UTILIDADES ESTÉTICAS
-   =========================================================== */
-h1.h4, h2.h4 {
-  font-weight: 600;
-  margin-bottom: 1.25rem;
-  text-align: center;
-  color: #003399;
-}
-
-p.text-muted {
-  text-align: center;
-  margin-bottom: 1.5rem;
-}
-
-.form-check-label a {
-  text-decoration: underline;
-  color: #0066FF;
-}
-
-.form-check-label a:hover {
-  color: #004bb5;
-}
-
-/* ===========================================================
-   ✨ BOTONES ESPECIALES (acciones y navegación)
-   =========================================================== */
-.btn-outline-secondary:hover {
-  background-color: #f3f5ff;
-  border-color: #0066FF;
-  color: #0066FF;
-}
-
-.btn:active {
-  transform: scale(0.98);
-}
-/* ===========================================================
-   🧭 DASHBOARD ADMIN
-   =========================================================== */
-
-.dashboard-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.dash-card {
-  border: none;
-  border-radius: 10px;
-  background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-  transition: transform 0.2s ease;
-}
-
-.dash-card:hover {
-  transform: translateY(-3px);
-}
-
-.dash-card h2 {
-  font-weight: 700;
-  color: #0066FF;
-}
-
-.card-title {
-  font-weight: 600;
-}
-/* Calendario admin */
-#adminCalendar, #calendarMini {
-  --fc-border-color: #e9ecef;
-  --fc-event-bg-color: #0066FF;
-  --fc-event-border-color: #0066FF;
-}
-/* ===========================
-   Variables de color y tipografía
-   =========================== */
+/* Paleta base (modo claro) */
 :root {
-  --primary: #0066FF;
-  --primary-600: #0052cc;
-  --primary-700: #004bb5;
-  --bg: #ffffff;
-  --surface: #ffffff;
-  --text: #1d1f23;
-  --muted: #6c757d;
-  --border: #e9ecef;
-  --shadow: 0 1px 4px rgba(0,0,0,0.08);
+  --primary:       #0066FF;
+  --primary-600:   #0052cc;
+  --primary-700:   #004bb5;
+
+  --bg:            #ffffff;
+  --surface:       #ffffff;
+  --text:          #1d1f23;
+  --muted:         #6c757d;
+  --border:        #e9ecef;
+  --shadow:        0 1px 4px rgba(0,0,0,0.08);
+
+  /* Altura aproximada de la navbar fija */
+  --nav-h-mobile:  64px;
+  --nav-h-desktop: 76px;
 }
 
+/* Tema oscuro (se activa con data-theme="dark" en <html>) */
 [data-theme="dark"] {
-  --primary: #66a3ff;
-  --primary-600: #4a8dff;
-  --primary-700: #3a74d9;
-  --bg: #0f1115;
-  --surface: #171a21;
-  --text: #eaeef5;
-  --muted: #9aa4b2;
-  --border: #2a2f3a;
-  --shadow: 0 1px 6px rgba(0,0,0,0.45);
+  --primary:       #66a3ff;
+  --primary-600:   #4a8dff;
+  --primary-700:   #3a74d9;
+
+  --bg:            #0f1115;
+  --surface:       #171a21;
+  --text:          #eaeef5;
+  --muted:         #9aa4b2;
+  --border:        #2a2f3a;
+  --shadow:        0 1px 6px rgba(0,0,0,0.45);
 }
 
-/* ===========================
-   Reseteos suaves y base
-   =========================== */
-html, body {
+/* Fondo y texto global (aplica tanto en público como en admin) */
+html,
+body {
   background: var(--bg);
   color: var(--text);
 }
 
+/* Compensar altura de navbar fija (ver header.php → body.has-fixed-nav) */
+body.has-fixed-nav {
+  padding-top: var(--nav-h-mobile);
+}
+@media (min-width: 992px) {
+  body.has-fixed-nav {
+    padding-top: var(--nav-h-desktop);
+  }
+}
+
+/* =========================================================
+   UTILIDADES GENERALES
+   ========================================================= */
+
+/* Contenedor base tipo "página dentro de la tienda" */
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+/* Texto gris suave */
+.muted {
+  color: #6b7280;
+}
+
+/* Badge genérico (contador, estados, etc.) */
+.badge {
+  font-size: .75rem;
+  padding: .2rem .5rem;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+/* Input de búsqueda */
+.search {
+  padding: .5rem .75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  width: 240px;
+}
+
+/* Caja para estados vacíos (sin productos, sin resultados, etc.) */
+.empty {
+  padding: 2rem;
+  text-align: center;
+  color: #6b7280;
+  border: 1px dashed #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+}
+
+/* Tablas y cards heredan los colores del tema */
 .card {
   background: var(--surface);
   box-shadow: var(--shadow);
@@ -296,658 +107,23 @@ html, body {
 .table thead th {
   border-bottom-color: var(--border);
 }
-.table td, .table th {
+.table td,
+.table th {
   border-color: var(--border);
 }
 
-/* Navbar admin en dark */
-.navbar.bg-dark {
-  background-color: #12151b !important;
-  border-bottom: 1px solid var(--border) !important;
-}
-
-/* Botones principales */
-.btn-primary {
-  background-color: var(--primary);
-  border-color: var(--primary);
-}
-.btn-primary:hover {
-  background-color: var(--primary-600);
-  border-color: var(--primary-700);
-}
-.btn-outline-primary {
-  color: var(--primary);
-  border-color: var(--primary);
-}
-.btn-outline-primary:hover {
-  background-color: var(--primary);
-  color: #fff;
-}
-
-/* Dashboard cards */
-.dashboard-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-.dash-card {
-  border: none;
-  border-radius: 12px;
-  background: linear-gradient(180deg, var(--surface) 0%, rgba(0,0,0,0.02) 100%);
-  box-shadow: var(--shadow);
-  transition: transform .2s ease;
-}
-.dash-card:hover { transform: translateY(-2px); }
-.dash-card h2 { color: var(--primary); }
-
-/* Flash messages */
-.flash-container .alert {
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-}
-
-/* Calendario (FullCalendar) */
-#adminCalendar, #calendarMini {
-  --fc-border-color: var(--border);
-  --fc-event-bg-color: var(--primary);
-  --fc-event-border-color: var(--primary);
-}
-[data-theme="dark"] .fc .fc-toolbar-title { color: var(--text); }
-
-/* Contenedor del gráfico (alto controlado por CSS) */
-.chart-container { position: relative; height: 280px; width: 100%; }
-.chart-container > canvas { width: 100% !important; height: 100% !important; display: block; }
-
-
-/* ===== Home público (index) ===== */
-/* Marco base de TODOS los carruseles */
-.carousel-frame {
-  position: relative;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 18px rgba(0,0,0,.08);
-}
-
-/* El contenedor, el item y la imagen ocupan el 100% de la altura del marco */
-.carousel-frame .carousel-inner,
-.carousel-frame .carousel-item,
-.carousel-frame .carousel-item img {
-  height: 100%;
-}
-
-/* Las imágenes cubren sin deformar, centradas */
-.carousel-frame .carousel-item img {
-  width: 100%;
-  display: block;
-  object-fit: cover;
-  object-position: center center;
-}
-
-/* ===== Alturas por contexto ===== */
-
-/* HERO grande */
-.home-hero .carousel-frame {
-  height: 54vh;         /* adaptable a viewport */
-  max-height: 520px;    /* tope desktop */
-  min-height: 320px;    /* evita quedar muy bajo */
-}
-@media (max-width: 576px) {
-  .home-hero .carousel-frame {
-    height: 46vh;
-    min-height: 260px;
-  }
-}
-
-
-/* Carrusel de la pantalla 2 (izquierda) */
-.home-section .carousel-frame:not(.small) {
-  height: 380px;
-}
-@media (max-width: 992px) {
-  .home-section .carousel-frame:not(.small) {
-    height: 300px;
-  }
-}
-
-/* Tres carruseles pequeños en fila */
-.carousel-frame.small {
-  height: 240px;
-}
-@media (min-width: 992px) {
-  .carousel-frame.small {
-    height: 280px;
-  }
-}
-
-/* Opcional: suaviza transición de altura si algún slider cambia de tamaño */
-.carousel .carousel-item {
-  transition: transform .6s ease-in-out, opacity .6s ease-in-out;
-}
-/* ===== NAVBAR FIJA AL HACER SCROLL ===== */
-/* ✔️ Navbar fija: respeta Bootstrap y ajusta estilos */
-:root {
-  --nav-h-mobile: 70px;   /* ajusta si tu nav es más alta */
-  --nav-h-desktop: 88px;  /* ajusta si hace falta */
-}
-
-body.has-fixed-nav {
-  padding-top: var(--nav-h-mobile);
-}
-@media (min-width: 992px) {
-  body.has-fixed-nav { padding-top: var(--nav-h-desktop); }
-}
-
-/* Solo estética/borde/sombra; NO tocar position */
-.navbar.fixed-top {
-  background: #fff;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-  border-bottom: 1px solid rgba(0,0,0,0.06);
-}
-
-/* ===== NAVBAR FIJA: espacio para que no tape el contenido ===== */
-:root {
-  --nav-h-mobile: 64px;   /* alto aprox. en móviles */
-  --nav-h-desktop: 76px;  /* alto aprox. en desktop */
-}
-
-body.has-fixed-nav {
-  padding-top: var(--nav-h-mobile);
-}
-
-@media (min-width: 992px) {
-  body.has-fixed-nav {
-    padding-top: var(--nav-h-desktop);
-  }
-}
-
-/* Estética del nav fijo (opcional) */
-.navbar.fixed-top {
-  background: #fff;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-  border-bottom: 1px solid rgba(0,0,0,0.06);
-}
-/* Texto bajo cada carrusel (compatibilidad con ambas clases) */
-.info-box,
-.text-info-box {
-  max-width: 520px;
-  text-align: left;
-  margin-inline: auto; /* centrado horizontal en mobile */
-}
-.info-box h3,
-.text-info-box .h5,
-.info-box .h5 {
-  font-weight: 600;
-}
-.info-box p,
-.text-info-box p {
-  margin-bottom: .8rem;
-}
-
-/* Fondo suave para diferenciar la sección */
-.section-alt { background: #ebe9e9; }
-
-/* Altura de carruseles de la sección 2 (sin depender de 'media-row') */
-.section-alt .carousel-frame { height: 340px; }
-@media (max-width: 992px) {
-  .section-alt .carousel-frame { height: 280px; }
-}
-
-/* Navbar / Logout look & layering */
-#mainNav { z-index: 1080; }
-.dropdown-menu { z-index: 2000; }
-
-/* Botón de logout con aspecto de item de menú */
-.dropdown-logout-form { margin: 0; }
-.dropdown-logout-form .dropdown-item { width: 100%; text-align: left; }
-.dropdown-item-danger { color: #dc3545; }
-.dropdown-item-danger:hover { color: #a52834; }
-
-/* Contenedor de flashes */
-.flash-container .alert { margin-bottom: 8px; }
-/* ===== Product detail ===== */
-.product-gallery { width: 100%; }
-.product-media {
-  aspect-ratio: 1 / 1;            /* cuadrado, moderno */
-  width: 100%;
-  background: #f8fafc;            /* fondo claro */
-  border-radius: 12px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.product-media img.product-img,
-.product-media img.related-img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;             /* no deforma, contiene */
-}
-
-/* Thumbnails */
-.product-thumbs .thumb {
-  display: block;
-  width: 100%;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  background: #fff;
-  padding: 4px;
-  transition: border-color .15s ease, transform .15s ease;
-}
-.product-thumbs .thumb:hover { border-color: #cbd5e1; transform: translateY(-1px); }
-.product-thumbs .thumb.active { border-color: #0d6efd; }
-.product-thumbs .thumb img {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  object-fit: contain;
-  border-radius: 8px;
-}
-
-/* Related */
-.related-products .related-card {
-  border: 1px solid #eef2f7;
-  border-radius: 12px;
-  overflow: hidden;
-  color: inherit;
-}
-.related-products .related-card:hover {
-  border-color: #dbe4f0;
-  box-shadow: 0 8px 24px rgba(16,24,40,.06);
-}
-.product-media--sm { aspect-ratio: 1 / 1; background: #f8fafc; }
-.related-name { font-size: .95rem; color: #334155; }
-/* ===== PRODUCTO DETALLE: alineación y proporción ===== */
-
-/* Contenedor principal de la ficha */
-.product-detail {
-  align-items: center; /* centra verticalmente la imagen y texto */
-}
-
-/* Galería principal */
-.product-gallery {
-  width: 100%;
-  max-width: 520px;           /* límite visual */
-  margin-inline: auto;        /* centra si hay espacio */
-}
-
-/* Imagen principal cuadrada pero más natural */
-.product-media {
-  aspect-ratio: 4 / 5;        /* proporción más fotográfica */
-  background: #f8fafc;
-  border-radius: 12px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 12px rgba(0,0,0,.05);
-}
-.product-media img.product-img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  transition: transform .3s ease;
-}
-.product-media img.product-img:hover {
-  transform: scale(1.02);
-}
-
-/* Columna derecha: info del producto */
-.product-detail .col-md-6:last-child {
-  display: flex;
-  flex-direction: column;
-  justify-content: center; /* centra verticalmente botones con título */
-}
-
-/* Botones */
-.product-detail .btn {
-  min-width: 150px;
-}
-
-/* Espaciado vertical entre precio y botones */
-.product-detail h1 { font-weight: 600; }
-.product-detail .h4 { color: #111827; font-weight: 500; }
-.product-detail .text-muted { line-height: 1.6; max-width: 90%; }
-
-/* Ajustes responsive */
-@media (max-width: 768px) {
-  .product-detail { align-items: flex-start; }
-  .product-detail .col-md-6:last-child {
-    justify-content: flex-start;
-    margin-top: 1.5rem;
-  }
-}
-/* ===== PRODUCT VIEW (inspirado en Nike) ===== */
-.product-view {
-  background-color: #f8f9fa;         /* gris muy claro */
-}
-
-.product-card {
-  background: #fff;
-  border-radius: 16px;
-  max-width: 1100px;
-  margin: 0 auto;
-  transition: box-shadow .3s ease, transform .3s ease;
-}
-.product-card:hover {
-  box-shadow: 0 10px 28px rgba(0,0,0,.08);
-  transform: translateY(-2px);
-}
-
-/* Imagen principal */
-.product-gallery {
-  width: 100%;
-  max-width: 500px;
-  margin: auto;
-}
-.product-media {
-  aspect-ratio: 4/5;                /* proporción tipo retrato */
-  background: #f9fafb;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-.product-media img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  transition: transform .4s ease;
-}
-.product-media img:hover {
-  transform: scale(1.03);
-}
-
-/* Thumbnails */
-.product-thumbs .thumb {
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 3px;
-  background: #f7f7f7;
-  transition: border-color .15s ease, transform .15s ease;
-  width: 100%;
-}
-.product-thumbs .thumb img {
-  width: 100%;
-  aspect-ratio: 1/1;
-  object-fit: contain;
-  border-radius: 8px;
-}
-.product-thumbs .thumb:hover {
-  border-color: #bbb;
-  transform: translateY(-2px);
-}
-.product-thumbs .thumb.active {
-  border-color: #0d6efd;
-}
-
-/* Info columna */
-.product-info h1 {
-  font-weight: 600;
-  color: #111;
-}
-.product-info .text-muted {
-  line-height: 1.6;
-  color: #6b7280;
-  font-size: 1rem;
-}
-.product-info .btn {
-  min-width: 160px;
-  padding: 0.6rem 1.2rem;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .product-card { padding: 1rem; }
-  .product-info { text-align: center; }
-  .product-info .btn { width: 100%; }
-  .product-info .d-flex { flex-direction: column; }
-}
-/* Estrellas */
-.rating-stars .star { font-size: 1.1rem; line-height: 1; }
-.star-full { color: #f59e0b; }   /* ámbar */
-.star-half { color: #fbbf24; }   /* tono intermedio (visual) */
-.star-empty { color: #e5e7eb; }  /* gris claro */
-
-/* Input de estrellas (form) */
-.rating-input { display: inline-flex; flex-direction: row-reverse; gap: .25rem; }
-.rating-input input { display: none; }
-.rating-input label {
-  cursor: pointer; font-size: 1.4rem; color: #e5e7eb; transition: color .15s ease;
-}
-.rating-input label:hover,
-.rating-input label:hover ~ label,
-.rating-input input:checked ~ label { color: #f59e0b; }
-
-/* Tallas */
-.badge.border { border: 1px solid #e5e7eb; }
-.product-media--sm { aspect-ratio: 1/1; background: #f8fafc; }
-/* ===== Ficha de producto - estilo ===== */
-.product-card { background:#fff; }
-.product-gallery { background:#f8fafc; }
-.product-media {
-  aspect-ratio: 4/5;
-  background:#f9fafb;
-  border-radius: 12px;
-  overflow:hidden;
-  display:flex; align-items:center; justify-content:center;
-}
-.product-media img { width:100%; height:100%; object-fit:contain; }
-
-/* Thumbnails */
-.product-thumbs .thumb {
-  display:block; width:100%; padding:4px;
-  border-radius:10px; background:#fff;
-  transition: border-color .15s ease, transform .15s ease;
-}
-.product-thumbs .thumb img {
-  width:100%; aspect-ratio:1/1; object-fit:contain; border-radius:8px;
-}
-.product-thumbs .thumb:hover { transform: translateY(-1px); }
-.product-thumbs .thumb.active { outline:2px solid rgba(13,110,253,.4); }
-
-/* Estrellas */
-.rating-stars .star { font-size:1.1rem; line-height:1; }
-.star-full { color:#f59e0b; }   /* ámbar */
-.star-half { color:#fbbf24; }
-.star-empty { color:#e5e7eb; }
-
-/* Relacionados */
-.product-media--sm { aspect-ratio:1/1; background:#f8fafc; }
-
-/* Responsive */
-@media (max-width: 768px){
-  .product-detail .btn { width:100%; }
-  .product-detail .btn-group { width:100%; }
-}
-/* --- Ajuste de marco en miniaturas: el borde abraza la imagen --- */
-.product-thumbs .thumb{
-  padding: 0;                 /* sin espacio extra */
-  border: 0;                  /* el borde no va en el contenedor */
-  background: transparent;
-  border-radius: 0;
-}
-
-.product-thumbs .thumb img{
-  display: block;
-  width: 100%;
-  height: auto;               /* evita forzar alto extra */
-  aspect-ratio: auto;         /* sin cuadrado artificial */
-  object-fit: contain;        /* respeta proporción real */
-  border: 2px solid rgba(13,110,253,.35);
-  border-radius: 12px;        /* borde redondeado pegado a la foto */
-}
-
-.product-thumbs .thumb.active img{
-  border-color: #0d6efd;      /* azul más vivo cuando está activa */
-}
-
-/* Opcional: si quieres que todas las miniaturas tengan un ancho parejo */
-.product-thumbs .col-3, .product-thumbs .col-sm-2{
-  max-width: 110px;
-}
-
-/* --- Borde del visualizador principal pegado a la imagen --- */
-.product-gallery{ border: 0 !important; }
-.product-media{
-  border: 2px solid rgba(13,110,253,.35);
-  border-radius: 16px;
-  background: #fff;
-}
-/* ===================== FIX PACK PRODUCTO ===================== */
-/* 1) Quitar bordes “dobles” del contenedor y carrusel */
-.product-card { border: 0 !important; box-shadow: 0 6px 18px rgba(0,0,0,.06); }
-.product-gallery { border: 0 !important; background: transparent; }
-
-/* 2) El borde azul va PEGADO a la imagen grande, no al wrapper */
-.product-media{
-  border: 2px solid rgba(13,110,253,.35);
-  border-radius: 16px;
-  background: #fff;
-  aspect-ratio: 4/5;
-  overflow: hidden;
-  display:flex; align-items:center; justify-content:center;
-}
-.product-media img{ width:100%; height:100%; object-fit:contain; }
-
-/* 3) Thumbnails: sin padding ni borde en el botón contenedor */
-.product-thumbs { margin-top: .5rem; }
-.product-thumbs .thumb{
-  padding: 0 !important;
-  border: 0 !important;
-  background: transparent !important;
-  border-radius: 0 !important;
-}
-
-/* Borde exacto en la IMAGEN (no en el botón) */
-.product-thumbs .thumb img{
-  display:block;
-  height: 68px;           /* alto uniforme */
-  width: auto;            /* respeta proporción */
-  aspect-ratio: auto;     /* evita “cuadrarlo” a la fuerza */
-  object-fit: contain;
-  border: 2px solid rgba(13,110,253,.35);
-  border-radius: 10px;
-}
-.product-thumbs .thumb.active img{
-  border-color: #0d6efd;              /* azul vivo en activa */
-  box-shadow: 0 0 0 2px #e7f1ff;      /* halo suave */
-}
-
-/* 4) La fila de miniaturas en verdadero “flex” con gap limpio */
-.product-thumbs .row{
-  --bs-gutter-x: 0; --bs-gutter-y: 0;
-  display: flex; flex-wrap: wrap; gap: 12px;
-}
-.product-thumbs .col-3,
-.product-thumbs .col-sm-2{
-  padding: 0 !important;
-  width: auto !important;           /* que la anchura la marque la imagen */
-  flex: 0 0 auto !important;
-}
-
-/* 5) “También te podría interesar”: marcos suaves, no gruesos */
-.related-products .product-media--sm{
-  border: 1.5px solid rgba(13,110,253,.25);
-  border-radius: 12px;
-  background:#fff;
-}
-/* ===========================
-   CONTACTO (3 pantallas)
-   =========================== */
-
-/* Compensar navbar fija (si usas body.has-fixed-nav ya no hace falta este) */
-.body-with-fixed-nav {
-  scroll-margin-top: 110px;
-}
-
-/* --- Pantalla 1 --- */
-.contact-hero {
-  padding-top: 120px;   /* despeje de la nav fija */
-  padding-bottom: 80px;
-}
-
-.social-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 64px);
-  grid-auto-rows: 64px;
-  gap: 16px;
-  margin-bottom: 18px;
-}
-
-.social-item {
-  display: grid;
-  place-items: center;
-  background: #fff;
-  border: 1px solid #e9ecef;
-  border-radius: 12px;
-  box-shadow: 0 4px 14px rgba(0,0,0,.05);
-  transition: transform .15s ease, box-shadow .15s ease;
-}
-.social-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0,0,0,.08);
-}
-.social-item img {
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
-}
-
-/* email + botón en fila */
-.email-signup {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-  max-width: 520px;
-}
-
-/* --- Pantalla 2 --- */
-.about-block {
-  padding: 100px 0;
-  border-top: 1px solid #8ba4bd;
-}
-
-.contact-carousel img {
-  aspect-ratio: 4/3;
-  object-fit: cover;
-  border-radius: 12px;
-}
-
-/* --- Pantalla 3 (CTA) --- */
-.cta-block {
-  padding: 100px 0 140px;
-  border-top: 1px solid #4b86c0;
-}
-.cta-block .cta-text {
-  max-width: 720px;
-}
-
-/* Responsivo */
-@media (max-width: 991px) {
-  .contact-hero { padding-top: 110px; }
-  .social-grid { grid-template-columns: repeat(4, 64px); } /* en tablets se ve en fila */
-}
-@media (max-width: 575px) {
-  .social-grid { grid-template-columns: repeat(4, 64px); gap: 12px; }
-  .email-signup { grid-template-columns: 1fr; }
-}
-/* ===== Gracias Contacto ===== */
-.thanks-section { padding-top: 80px; padding-bottom: 120px; }
-.thanks-card { max-width: 720px; margin: 0 auto; border-radius: 16px; }
-
 /* =========================================================
-   SISTEMA GLOBAL DE BOTONES (override final)
+   SISTEMA GLOBAL DE BOTONES
    ========================================================= */
 
-/* Base para TODOS los .btn (Bootstrap + tu proyecto) */
+/* Base de TODOS los botones (.btn de Bootstrap + personalizados) */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: .4rem;
   padding: .55rem 1.15rem;
-  border-radius: 999px;                 /* pastilla para todos */
+  border-radius: 999px; /* forma de “pastilla” */
   border: 1px solid transparent;
   font-size: .95rem;
   font-weight: 500;
@@ -982,9 +158,8 @@ body.has-fixed-nav {
   box-shadow: 0 6px 14px rgba(0,0,0,.18);
 }
 
-/* Botón rojo (ej: "Ver producto") con misma forma */
+/* Botón tipo “peligro” (acciones críticas) */
 .btn-danger {
-  border-radius: 999px;
   background-color: #e02424;
   border-color: #e02424;
   color: #fff;
@@ -995,7 +170,7 @@ body.has-fixed-nav {
   box-shadow: 0 6px 14px rgba(0,0,0,.18);
 }
 
-/* Outline (Carrito, etc.) */
+/* Botones de contorno (Carrito, enlaces secundarios…) */
 .btn-outline-primary,
 .btn-outline-secondary {
   background-color: transparent;
@@ -1009,7 +184,7 @@ body.has-fixed-nav {
   border-color: var(--primary-600);
 }
 
-/* Botones grises secundarios (tablas, etc.) */
+/* Botones grises secundarios (acciones neutras) */
 .btn-light,
 .btn-secondary {
   background-color: #f3f4f6;
@@ -1021,27 +196,59 @@ body.has-fixed-nav {
   background-color: #e5e7eb;
 }
 
-/* Botón de cuenta: reutiliza el sistema general */
+/* Variante antigua .btn.secondary → la mantenemos por compatibilidad */
+.btn.secondary {
+  background: #fff;
+  color: #111827;
+}
+
+/* Botón especial de cuenta (avatar + nombre) */
 .btn-account {
   border-radius: 999px;
   padding: .45rem .95rem;
   border-width: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 .btn-account .icon-account {
   font-size: 1.1rem;
 }
+.btn-account:hover {
+  transform: translateY(-1px);
+  background-color: rgba(0, 102, 255, 0.1);
+}
+
 /* =========================================================
-   NAVBAR: hover + activo coherente
+   NAVBAR · FIJA + ESTADO ACTIVO
    ========================================================= */
 
-/* Usamos el id del nav para ganar especificidad sobre Bootstrap */
+/* Estética del nav fijo (Bootstrap .navbar.fixed-top) */
+.navbar.fixed-top {
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+/* Navbar de admin en tema oscuro */
+.navbar.bg-dark {
+  background-color: #12151b !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+/* Enlaces del menú principal (nav con id="mainNav") */
 #mainNav .nav-link {
   position: relative;
   font-weight: 500;
   color: var(--muted);
   padding-inline: .75rem;
 }
-#mainNav .nav-link::after { /* deja igual el bloque que ya tienes, solo cambia .navbar por #mainNav */
+
+/* Subrayado animado (hover / activo) */
+#mainNav .nav-link::after {
   content: '';
   position: absolute;
   left: 1rem;
@@ -1076,96 +283,179 @@ body.has-fixed-nav {
   transform: translateY(0);
 }
 
+/* Dropdown / logout */
+#mainNav { z-index: 1080; }
+.dropdown-menu { z-index: 2000; }
+.dropdown-logout-form { margin: 0; }
+.dropdown-logout-form .dropdown-item { width: 100%; text-align: left; }
+.dropdown-item-danger { color: #dc3545; }
+.dropdown-item-danger:hover { color: #a52834; }
 
-/* Línea inferior suave (hover/activo) */
-.navbar .nav-link::after {
-  content: '';
-  position: absolute;
-  left: 1rem;
-  right: 1rem;
-  bottom: .25rem;
-  height: 2px;
-  border-radius: 999px;
-  background-color: transparent;
-  opacity: 0;
-  transform: translateY(3px);
-  transition:
-    background-color .18s ease,
-    opacity .18s ease,
-    transform .18s ease;
-}
-
-/* Hover general */
-.navbar .nav-link:hover {
-  color: var(--primary-700);
-}
-.navbar .nav-link:hover::after {
-  background-color: rgba(0,102,255,.4);
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* Página activa (Inicio, Catálogo, Contacto, Admin...) */
-.navbar .nav-link.active {
-  color: var(--primary);
-}
-.navbar .nav-link.active::after {
-  background-color: var(--primary);
-  opacity: 1;
-  transform: translateY(0);
-}
 /* =========================================================
-   🧩 FASE 1 · CATÁLOGO RESPONSIVE (FIX)
+   FLASHES Y TIPOGRAFÍA GLOBAL
    ========================================================= */
 
-/* Layout por defecto: pensado para móvil */
+.flash-container {
+  margin: 1rem auto;
+  max-width: 600px;
+}
+.flash-container .alert {
+  margin-bottom: 8px;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+/* Títulos de secciones importantes */
+h1.h4,
+h2.h4 {
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+  text-align: center;
+  color: #003399;
+}
+
+/* Parrafos auxiliares (ej: textos de ayuda) */
+p.text-muted {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+/* Links dentro de textos legales o checkboxes */
+.form-check-label a {
+  text-decoration: underline;
+  color: #0066FF;
+}
+.form-check-label a:hover {
+  color: #004bb5;
+}
+
+/* =========================================================
+   FORMULARIOS · LOGIN · REGISTRO
+   ========================================================= */
+
+/* Contenedor genérico de formularios */
+.form-container {
+  max-width: 600px;
+  margin: 2rem auto;
+  background-color: #fff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Versión compacta para login / registro */
+.form-auth {
+  max-width: 460px;
+  margin: 2rem auto;
+  background-color: #fff;
+  padding: 1.5rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Inputs / selects en formularios */
+.form-container input,
+.form-container select,
+.form-container textarea,
+.form-auth input {
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  padding: 0.55rem 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.form-container input:focus,
+.form-container select:focus,
+.form-auth input:focus {
+  border-color: #0066FF;
+  box-shadow: 0 0 0 2px rgba(53, 99, 168, 0.25);
+  outline: none;
+}
+
+/* =========================================================
+   CATÁLOGO DE PRODUCTOS
+   ========================================================= */
+
+/* Encabezado de catálogo (título + filtros + buscador) */
 .catalogo-header {
   display: flex;
-  flex-direction: column;     /* título arriba, toolbar debajo */
+  flex-direction: column;  /* móvil: columna */
   align-items: flex-start;
   gap: .75rem;
   margin-bottom: 1rem;
 }
-
 .catalogo-header .toolbar {
   display: flex;
   align-items: center;
   gap: .5rem;
-  width: 100%;               /* que ocupe todo el ancho disponible */
+  width: 100%;
 }
-
-/* El buscador ocupa todo el espacio libre */
+/* search dentro del header: en móvil ocupa todo el ancho */
 .catalogo-header .search {
   flex: 1 1 auto;
   min-width: 0;
 }
-
-/* Los badges (contador y carrito) solo ocupan lo que necesitan */
 .catalogo-header .badge {
   flex: 0 0 auto;
   white-space: nowrap;
 }
 
-/* Un poco menos de padding en móvil para esta página */
+/* Página de catálogo un poco más compacta en móvil */
 .page.page--catalogo {
   padding: 1rem .75rem;
 }
 
-/* En móviles muy pequeños: forzamos 1 columna por claridad */
+/* Grid de tarjetas de productos */
+.catalogo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+/* Card de producto en catálogo */
+.catalog-card,
+.card { /* reutilizamos .card base pero la reforzamos aquí si hace falta */
+  border-radius: 12px;
+  padding: .75rem;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.catalog-card:hover,
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,.08);
+}
+.card img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+.card .name {
+  font-weight: 600;
+  font-size: 1rem;
+}
+.card .price {
+  font-weight: 700;
+}
+
+/* Forzar 1 columna en móvil muy estrecho */
 @media (max-width: 480px) {
   .catalogo-grid {
     grid-template-columns: 1fr;
   }
 }
 
-/* ===== A partir de tablet / escritorio (>= 768px) ===== */
+/* A partir de tablet (más aire en página y header en fila) */
 @media (min-width: 768px) {
   .page.page--catalogo {
     padding: 1.5rem;
   }
 
   .catalogo-header {
-    flex-direction: row;             /* título e toolbar en la misma fila */
+    flex-direction: row;
     align-items: center;
     justify-content: space-between;
   }
@@ -1174,60 +464,642 @@ body.has-fixed-nav {
     width: auto;
   }
 
-  /* Recuperamos el ancho “fijo” del buscador, pero solo en grande */
   .catalogo-header .search {
     width: 240px;
     flex: 0 0 auto;
   }
 }
+
 /* =========================================================
-   🧩 FASE 1 · CARRO Y CHECKOUT RESPONSIVE
+   DETALLE DE PRODUCTO · GALERÍA + INFO
    ========================================================= */
 
-/* Carrito: mensaje vacío centrado y limpio */
+/* Sección general (fondo ligeramente gris) */
+.product-view {
+  background-color: #f8f9fa;
+}
+
+/* Tarjeta principal donde vive la ficha de producto */
+.product-card {
+  background: #fff;
+  border-radius: 16px;
+  max-width: 1100px;
+  margin: 0 auto;
+  box-shadow: 0 6px 18px rgba(0,0,0,.06);
+  border: 0 !important; /* evitamos dobles bordes */
+  transition: box-shadow .3s ease, transform .3s ease;
+}
+.product-card:hover {
+  box-shadow: 0 10px 28px rgba(0,0,0,.08);
+  transform: translateY(-2px);
+}
+
+/* Layout de la ficha (izquierda galería, derecha info) */
+.product-detail {
+  align-items: center;
+}
+.product-detail .col-md-6:last-child {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.product-detail h1 {
+  font-weight: 600;
+}
+.product-detail .h4 {
+  color: #111827;
+  font-weight: 500;
+}
+.product-detail .text-muted {
+  line-height: 1.6;
+  max-width: 90%;
+}
+.product-detail .btn {
+  min-width: 150px;
+}
+
+/* Galería principal */
+.product-gallery {
+  width: 100%;
+  max-width: 500px;
+  margin: auto;
+  border: 0 !important;
+}
+
+/* Marco de la imagen principal */
+.product-media {
+  aspect-ratio: 4/5;
+  background: #fff;
+  border-radius: 16px;
+  border: 2px solid rgba(13,110,253,.35);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.product-media img,
+.product-media img.product-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: transform .3s ease;
+}
+.product-media img:hover {
+  transform: scale(1.03);
+}
+
+/* Fila de miniaturas (thumbnails) */
+.product-thumbs {
+  margin-top: .5rem;
+}
+.product-thumbs .row {
+  --bs-gutter-x: 0;
+  --bs-gutter-y: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.product-thumbs .col-3,
+.product-thumbs .col-sm-2 {
+  padding: 0 !important;
+  width: auto !important;
+  flex: 0 0 auto !important;
+}
+
+/* Botón contenedor: sin bordes ni padding (el borde va en la imagen) */
+.product-thumbs .thumb {
+  display: block;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+}
+
+/* Imagen de miniatura con borde azul */
+.product-thumbs .thumb img {
+  display: block;
+  height: 68px;
+  width: auto;
+  aspect-ratio: auto;
+  object-fit: contain;
+  border: 2px solid rgba(13,110,253,.35);
+  border-radius: 10px;
+  transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease;
+}
+.product-thumbs .thumb img:hover {
+  transform: translateY(-1px);
+}
+.product-thumbs .thumb.active img {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 2px #e7f1ff;
+}
+
+/* Productos relacionados (debajo de la ficha) */
+.related-products .related-card {
+  border: 1px solid #eef2f7;
+  border-radius: 12px;
+  overflow: hidden;
+  color: inherit;
+}
+.related-products .related-card:hover {
+  border-color: #dbe4f0;
+  box-shadow: 0 8px 24px rgba(16,24,40,.06);
+}
+.product-media--sm {
+  aspect-ratio: 1/1;
+  background: #fff;
+  border: 1.5px solid rgba(13,110,253,.25);
+  border-radius: 12px;
+}
+.related-name {
+  font-size: .95rem;
+  color: #334155;
+}
+
+/* Estrellas de valoración (sólo visual) */
+.rating-stars .star {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.star-full  { color: #f59e0b; }
+.star-half  { color: #fbbf24; }
+.star-empty { color: #e5e7eb; }
+
+/* Input de estrellas (formularios de reseñas) */
+.rating-input {
+  display: inline-flex;
+  flex-direction: row-reverse;
+  gap: .25rem;
+}
+.rating-input input {
+  display: none;
+}
+.rating-input label {
+  cursor: pointer;
+  font-size: 1.4rem;
+  color: #e5e7eb;
+  transition: color .15s ease;
+}
+.rating-input label:hover,
+.rating-input label:hover ~ label,
+.rating-input input:checked ~ label {
+  color: #f59e0b;
+}
+
+/* Responsive de la ficha */
+@media (max-width: 768px) {
+  .product-detail {
+    align-items: flex-start;
+  }
+  .product-detail .col-md-6:last-child {
+    justify-content: flex-start;
+    margin-top: 1.5rem;
+  }
+  .product-detail .btn,
+  .product-detail .btn-group {
+    width: 100%;
+  }
+
+  .product-card {
+    padding: 1rem;
+  }
+}
+
+/* Botón flotante de carrito en detalle (si lo usas) */
+.cart-fab {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  background: #111827;
+  color: #fff;
+  border-radius: 999px;
+  padding: .5rem .8rem;
+}
+
+/* =========================================================
+   CARRITO (carrito.php) + CHECKOUT (checkout.php)
+   ========================================================= */
+
+/* Layout general del carrito */
+.cart-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.cart-grid {
+  display: grid;
+  grid-template-columns: 1fr 330px;
+  gap: 1.25rem;
+}
+.card-box {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+/* Tabla de carrito */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th,
+td {
+  padding: .6rem .4rem;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+}
+.right {
+  text-align: right;
+}
+.total {
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+/* Ítems dentro del carrito */
+.item {
+  display: flex;
+  gap: .8rem;
+  align-items: center;
+}
+.thumb {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+/* Checkout lateral dentro del carrito */
 .cart-page #empty.empty {
   max-width: 480px;
   margin: 1.5rem auto;
 }
-
-/* Carrito: contenedor principal */
 .cart-page .row {
   margin-bottom: 1rem;
 }
 
-/* Checkout: carta más “flotante” (usa el card existente) */
+/* Página de checkout (form de datos del cliente) */
 .checkout-page .card {
   border-radius: 12px;
 }
 
-/* ================== VISTA MÓVIL (<= 576px) ================== */
+/* Breakpoint: carrito y checkout en una sola columna */
+@media (max-width: 980px) {
+  .cart-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Versión móvil: botones full width y bloques apilados */
 @media (max-width: 576px) {
-  /* Barra superior del carrito: botones uno debajo de otro */
   .cart-page .d-flex.justify-content-between.align-items-center {
     flex-direction: column;
     align-items: stretch;
     gap: .5rem;
   }
-
   .cart-page .d-flex.justify-content-between.align-items-center .btn {
     width: 100%;
     justify-content: center;
   }
 
-  /* Resumen del carrito: que la tarjeta tenga algo más de aire */
   .cart-page aside .card {
     margin-top: .5rem;
   }
 
-  /* Checkout: botones de abajo en columna, full width */
   .checkout-page .d-flex.justify-content-between.align-items-center {
     flex-direction: column;
     align-items: stretch;
     gap: .75rem;
   }
-
   .checkout-page .d-flex.justify-content-between.align-items-center .btn {
     width: 100%;
     justify-content: center;
   }
+}
+
+/* =========================================================
+   ADMIN · DASHBOARD · CALENDARIO
+   ========================================================= */
+
+.dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.dash-card {
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--surface) 0%, rgba(0,0,0,0.02) 100%);
+  box-shadow: var(--shadow);
+  transition: transform .2s ease;
+}
+.dash-card:hover {
+  transform: translateY(-2px);
+}
+.dash-card h2 {
+  font-weight: 700;
+  color: var(--primary);
+}
+.card-title {
+  font-weight: 600;
+}
+
+/* Calendario fullcalendar (admin) */
+#adminCalendar,
+#calendarMini {
+  --fc-border-color: var(--border);
+  --fc-event-bg-color: var(--primary);
+  --fc-event-border-color: var(--primary);
+}
+[data-theme="dark"] .fc .fc-toolbar-title {
+  color: var(--text);
+}
+
+/* Contenedor de gráficos (Chart.js, por ejemplo) */
+.chart-container {
+  position: relative;
+  height: 280px;
+  width: 100%;
+}
+.chart-container > canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+/* =========================================================
+   HOME PÚBLICO · CARRUSELES
+   ========================================================= */
+
+/* Marco base para TODOS los carruseles */
+.carousel-frame {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 18px rgba(0,0,0,.08);
+}
+
+/* El contenedor, el item y la imagen ocupan toda la altura */
+.carousel-frame .carousel-inner,
+.carousel-frame .carousel-item,
+.carousel-frame .carousel-item img {
+  height: 100%;
+}
+
+/* Imágenes centradas y recortadas sin deformar */
+.carousel-frame .carousel-item img {
+  width: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center center;
+}
+
+/* HERO principal */
+.home-hero .carousel-frame {
+  height: 54vh;
+  max-height: 520px;
+  min-height: 320px;
+}
+@media (max-width: 576px) {
+  .home-hero .carousel-frame {
+    height: 46vh;
+    min-height: 260px;
+  }
+}
+
+/* Carrusel de la pantalla 2 (lado izquierdo) */
+.home-section .carousel-frame:not(.small) {
+  height: 380px;
+}
+@media (max-width: 992px) {
+  .home-section .carousel-frame:not(.small) {
+    height: 300px;
+  }
+}
+
+/* Tres carruseles pequeños en fila */
+.carousel-frame.small {
+  height: 240px;
+}
+@media (min-width: 992px) {
+  .carousel-frame.small {
+    height: 280px;
+  }
+}
+
+/* Suavizar animaciones del carrusel */
+.carousel .carousel-item {
+  transition: transform .6s ease-in-out, opacity .6s ease-in-out;
+}
+
+/* Texto debajo de cada carrusel */
+.info-box,
+.text-info-box {
+  max-width: 520px;
+  text-align: left;
+  margin-inline: auto;
+}
+.info-box h3,
+.text-info-box .h5,
+.info-box .h5 {
+  font-weight: 600;
+}
+.info-box p,
+.text-info-box p {
+  margin-bottom: .8rem;
+}
+
+/* Fondo ligeramente distinto para la sección 2 */
+.section-alt {
+  background: #ebe9e9;
+}
+.section-alt .carousel-frame {
+  height: 340px;
+}
+@media (max-width: 992px) {
+  .section-alt .carousel-frame {
+    height: 280px;
+  }
+}
+
+/* =========================================================
+   PÁGINAS DE CONTACTO (3 PANTALLAS)
+   ========================================================= */
+
+.body-with-fixed-nav {
+  scroll-margin-top: 110px;
+}
+
+/* Pantalla 1: hero de contacto */
+.contact-hero {
+  padding-top: 120px;
+  padding-bottom: 80px;
+}
+
+/* Grid de iconos sociales (WhatsApp, Instagram, etc.) */
+.social-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 64px);
+  grid-auto-rows: 64px;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.social-item {
+  display: grid;
+  place-items: center;
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.05);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.social-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,0,0,.08);
+}
+.social-item img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+/* Email + botón en fila */
+.email-signup {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  max-width: 520px;
+}
+
+/* Pantalla 2: bloque “sobre la marca” */
+.about-block {
+  padding: 100px 0;
+  border-top: 1px solid #8ba4bd;
+}
+.contact-carousel img {
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+/* Pantalla 3: CTA final */
+.cta-block {
+  padding: 100px 0 140px;
+  border-top: 1px solid #4b86c0;
+}
+.cta-block .cta-text {
+  max-width: 720px;
+}
+
+/* Responsivo contacto */
+@media (max-width: 991px) {
+  .contact-hero {
+    padding-top: 110px;
+  }
+  .social-grid {
+    grid-template-columns: repeat(4, 64px);
+  }
+}
+@media (max-width: 575px) {
+  .social-grid {
+    grid-template-columns: repeat(4, 64px);
+    gap: 12px;
+  }
+  .email-signup {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Página “gracias por contactar” */
+.thanks-section {
+  padding-top: 80px;
+  padding-bottom: 120px;
+}
+.thanks-card {
+  max-width: 720px;
+  margin: 0 auto;
+  border-radius: 16px;
+}
+/* =========================
+   TOASTS (notificaciones)
+   ========================= */
+#toast-stack {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+.toast-msg {
+  min-width: 260px;
+  max-width: 340px;
+  padding: .7rem .9rem;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(15,23,42,.18);
+  display: flex;
+  align-items: flex-start;
+  gap: .6rem;
+  font-size: .9rem;
+  border: 1px solid rgba(148,163,184,.4);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity .18s ease, transform .18s ease;
+}
+
+.toast-msg.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast-msg__icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .8rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.toast-msg__content {
+  flex: 1;
+}
+
+.toast-msg__title {
+  font-weight: 600;
+  margin-bottom: .1rem;
+}
+
+.toast-msg__close {
+  border: none;
+  background: transparent;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* Colores por tipo */
+.toast-msg--success .toast-msg__icon {
+  background: #16a34a;
+}
+.toast-msg--error .toast-msg__icon {
+  background: #dc2626;
+}
+.toast-msg--warning .toast-msg__icon {
+  background: #f97316;
+}
+.toast-msg--info .toast-msg__icon {
+  background: #2563eb;
 }

@@ -1,48 +1,67 @@
 <?php
-// public/catalogo.php
+// public/catalogo.php — Listado de productos
 require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/bootstrap.php';
+require_once __DIR__ . '/../inc/auth.php';
 
-$CONTEXT = 'public';
+$CONTEXT    = 'public';
 $PAGE_TITLE = 'Catálogo';
-
-$BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
+$BASE       = defined('BASE_URL') ? BASE_URL : '/shopping';
 
 include __DIR__ . '/../templates/header.php';
 ?>
-<div class="page page--catalogo">
-  <header class="catalogo-header">
-    <h1>Catálogo</h1>
-    <div class="toolbar">
-      <input id="q" class="search" type="search" placeholder="Buscar producto..." />
-      <span id="count" class="badge">0 items</span>
-      <a id="cart-link" class="badge" href="<?= $BASE ?>/public/carrito.php">🛒 <span id="cart-count">0</span></a>
-    </div>
-  </header>
 
-  <section id="grid" class="catalogo-grid" aria-live="polite"></section>
-  <div id="empty" class="empty hidden">No hay productos para mostrar.</div>
-</div>
+<main class="page page-catalogo py-4 py-md-5">
+  <section class="container">
+
+    <header class="catalogo-header d-flex flex-column flex-md-row align-items-md-center gap-3 mb-4">
+      <h1 class="mb-0">Catálogo</h1>
+      <div class="ms-md-auto d-flex flex-wrap align-items-center gap-2">
+        <input
+          id="q"
+          class="form-control"
+          type="search"
+          placeholder="Buscar producto..."
+          style="max-width:240px;"
+        />
+        <span id="count" class="badge bg-secondary">0 items</span>
+        <a
+          id="cart-link"
+          class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
+          href="<?= htmlspecialchars($BASE) ?>/public/carrito.php">
+          🛒 <span id="cart-count">0</span>
+        </a>
+      </div>
+    </header>
+
+    <section id="grid" class="catalogo-grid" aria-live="polite"></section>
+    <div id="empty" class="empty hidden text-muted mt-3">No hay productos para mostrar.</div>
+
+  </section>
+</main>
 
 <script>
 (function () {
-  const BASE = <?= json_encode($BASE) ?>;
-  const API_URL = BASE + "/api/products.php?active=1";
+  const BASE        = <?= json_encode($BASE) ?>;
+  const API_URL     = BASE + "/api/products.php?active=1";
   const IMG_UPLOADS = BASE + "/uploads/";
   const IMG_IMAGES  = BASE + "/images/";
   const PLACEHOLDER = IMG_IMAGES + "placeholder.jpg";
 
-  const grid = document.getElementById("grid");
+  const grid  = document.getElementById("grid");
   const empty = document.getElementById("empty");
   const count = document.getElementById("count");
-  const q = document.getElementById("q");
+  const q     = document.getElementById("q");
 
   let all = [];
   let filtered = [];
 
   function fmtPrice(n) {
-    try { return new Intl.NumberFormat('es-ES', { style:'currency', currency:'EUR' }).format(n); }
-    catch (_) { return "€ " + Number(n).toFixed(2); }
+    try {
+      return new Intl.NumberFormat('es-ES', { style:'currency', currency:'EUR' }).format(n);
+    } catch (_) {
+      return "€ " + Number(n).toFixed(2);
+    }
   }
 
   function setEmpty(show, msg) {
@@ -50,11 +69,12 @@ include __DIR__ . '/../templates/header.php';
     if (msg) empty.textContent = msg;
   }
 
-  function makeImg(fname, altText){
+  function makeImg(fname, altText) {
     const img = document.createElement('img');
     img.alt = altText || '';
     img.dataset.fname = (fname || '').trim();
     if (!img.dataset.fname) { img.src = PLACEHOLDER; return img; }
+
     // 1) uploads → 2) images → 3) placeholder
     img.src = IMG_UPLOADS + img.dataset.fname;
     img.onerror = function onFirst() {
@@ -81,7 +101,7 @@ include __DIR__ . '/../templates/header.php';
 
     items.forEach(p => {
       const card = document.createElement("article");
-      card.className = "card";
+      card.className = "card catalogo-card";
       const href = `${BASE}/public/producto.php?id=${p.id}`;
 
       const cover = document.createElement('a');
@@ -118,7 +138,11 @@ include __DIR__ . '/../templates/header.php';
 
   function applyFilter() {
     const term = (q.value || "").toLowerCase().trim();
-    if (!term) { filtered = all.slice(); render(filtered); return; }
+    if (!term) {
+      filtered = all.slice();
+      render(filtered);
+      return;
+    }
     filtered = all.filter(p =>
       (p.name || "").toLowerCase().includes(term) ||
       (p.description || "").toLowerCase().includes(term)

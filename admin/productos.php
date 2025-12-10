@@ -1,5 +1,5 @@
 <?php
-// admin/productos.php — listado con búsqueda, filtro y paginación
+// admin/productos.php — listado con búsqueda, filtro y paginación + stock
 declare(strict_types=1);
 
 require_once __DIR__ . '/../config/bootstrap.php';
@@ -8,25 +8,28 @@ require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/flash.php';
 
-$BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
-$csrf = auth_csrf();
-
-
 $CONTEXT    = 'admin';
 $PAGE_TITLE = 'Productos';
 
 requireAdmin(); // solo admin
 
-$pdo = getConnection();
+$pdo  = getConnection();
+$BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
+
+// CSRF unificado
+$csrf = auth_csrf();
 
 /* ==============================
    Acciones POST (activar / desactivar / borrar)
    ============================== */
-// IMPORTANTE: aquí hemos quitado la comprobación estricta de CSRF
-// para evitar el error que te aparece en XAMPP y poder seguir avanzando.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  // Protección CSRF
-  if (!verify_csrf($_POST['csrf'] ?? '')) {
+  if (!can('productos:state') && !can('productos:delete')) {
+    http_response_code(403);
+    die('Acción no autorizada');
+  }
+
+  $token = $_POST['csrf'] ?? '';
+  if (!verify_csrf($token)) {
     flash_error('CSRF inválido. Recarga la página e inténtalo de nuevo.');
     header('Location: ' . $BASE . '/admin/productos.php');
     exit;
@@ -49,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'delete' && $id > 0) {
+      // borrado suave → marcar como inactivo
       $pdo->prepare("
         UPDATE products
         SET is_active = 0, updated_at = NOW()
@@ -73,7 +77,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
   }
 }
-
 
 /* ==============================
    Filtros y paginación
@@ -105,7 +108,7 @@ $totalRows  = (int)$stmtTotal->fetchColumn();
 $totalPages = max(1, (int)ceil($totalRows / $per));
 
 $sql = "
-  SELECT id, name, price, image, is_active
+  SELECT id, name, price, image, is_active, stock
   FROM products
   WHERE $whereSql
   ORDER BY id DESC
@@ -138,123 +141,127 @@ function build_qs(array $overrides = []) {
 
 include __DIR__ . '/../templates/header.php';
 ?>
-<main class="container py-4">
 
-  <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-    <h1 class="h3 mb-0">Productos</h1>
-    <a href="<?= BASE_URL ?>/admin/producto_form.php" class="btn btn-primary">Nuevo producto</a>
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+  <h1 class="h3 mb-0">Productos</h1>
+  <a href="<?= $BASE ?>/admin/producto_form.php" class="btn btn-primary">Nuevo producto</a>
+</div>
+
+<form class="row g-2 align-items-end mb-3" method="get" action="">
+  <div class="col-sm-6 col-md-4">
+    <label class="form-label">Buscar</label>
+    <input type="text" class="form-control" name="q" value="<?= htmlspecialchars($q) ?>" placeholder="Nombre o descripción…">
   </div>
-
-  <form class="row g-2 align-items-end mb-3" method="get" action="">
-    <div class="col-sm-6 col-md-4">
-      <label class="form-label">Buscar</label>
-      <input type="text" class="form-control" name="q" value="<?= htmlspecialchars($q) ?>" placeholder="Nombre o descripción…">
-    </div>
-    <div class="col-sm-4 col-md-3">
-      <label class="form-label">Estado</label>
-      <select name="estado" class="form-select">
-        <option value="all" <?= $estado==='all'?'selected':'' ?>>Todos</option>
-        <option value="1"   <?= $estado==='1'  ?'selected':'' ?>>Activos</option>
-        <option value="0"   <?= $estado==='0'  ?'selected':'' ?>>Inactivos</option>
-      </select>
-    </div>
+  <div class="col-sm-4 col-md-3">
+    <label class="form-label">Estado</label>
+    <select name="estado" class="form-select">
+      <option value="all" <?= $estado==='all'?'selected':'' ?>>Todos</option>
+      <option value="1"   <?= $estado==='1'  ?'selected':'' ?>>Activos</option>
+      <option value="0"   <?= $estado==='0'  ?'selected':'' ?>>Inactivos</option>
+    </select>
+  </div>
+  <div class="col-auto">
+    <button class="btn btn-outline-secondary">Filtrar</button>
+  </div>
+  <?php if ($q !== '' || ($estado === '1' || $estado === '0')): ?>
     <div class="col-auto">
-      <button class="btn btn-outline-secondary">Filtrar</button>
+      <a class="btn btn-outline-dark" href="<?= $BASE ?>/admin/productos.php">Limpiar</a>
     </div>
-    <?php if ($q !== '' || ($estado === '1' || $estado === '0')): ?>
-      <div class="col-auto">
-        <a class="btn btn-outline-dark" href="<?= BASE_URL ?>/admin/productos.php">Limpiar</a>
-      </div>
+  <?php endif; ?>
+</form>
+
+<?php
+$from = $totalRows ? ($offset + 1) : 0;
+$to   = $offset + count($productos);
+?>
+<p class="text-muted small mb-2">
+  Mostrando <?= $from ?>–<?= $to ?> de <?= $totalRows ?> resultado<?= $totalRows===1?'':'s' ?>.
+</p>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-striped table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width:80px">ID</th>
+            <th style="width:64px">Imagen</th>
+            <th>Nombre</th>
+            <th class="text-end" style="width:140px">Precio</th>
+            <th class="text-end" style="width:100px">Stock</th>
+            <th style="width:120px">Estado</th>
+            <th class="text-end" style="width:260px">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+        <?php if (!$productos): ?>
+          <tr><td colspan="7" class="text-center text-muted py-4">No hay productos</td></tr>
+        <?php else: foreach ($productos as $p): ?>
+          <tr>
+            <td><?= (int)$p['id'] ?></td>
+            <td><img class="thumb-sm" src="<?= image_url($p) ?>" alt=""></td>
+            <td><?= htmlspecialchars($p['name']) ?></td>
+            <td class="text-end">€ <?= number_format((float)$p['price'], 2, ',', '.') ?></td>
+            <td class="text-end">
+              <?= (int)($p['stock'] ?? 0) ?>
+            </td>
+            <td>
+              <?php if ((int)$p['is_active'] === 1): ?>
+                <span class="badge bg-success-subtle border border-success-subtle text-success-emphasis rounded-pill">Activo</span>
+              <?php else: ?>
+                <span class="badge bg-secondary-subtle border border-secondary-subtle text-secondary-emphasis rounded-pill">Inactivo</span>
+              <?php endif; ?>
+            </td>
+            <td class="text-end">
+              <a class="btn btn-sm btn-outline-primary" href="<?= $BASE ?>/admin/producto_form.php?id=<?= (int)$p['id'] ?>">Editar</a>
+
+              <form action="" method="post" class="d-inline" onsubmit="return confirm('¿Cambiar estado de este producto?');">
+                <input type="hidden" name="csrf"   value="<?= htmlspecialchars($csrf) ?>">
+                <input type="hidden" name="action" value="toggle">
+                <input type="hidden" name="id"     value="<?= (int)$p['id'] ?>">
+                <button class="btn btn-sm btn-outline-warning" type="submit">
+                  <?= (int)$p['is_active']===1 ? 'Desactivar' : 'Activar' ?>
+                </button>
+              </form>
+
+              <form action="" method="post" class="d-inline" onsubmit="return confirm('¿Inactivar este producto?');">
+                <input type="hidden" name="csrf"   value="<?= htmlspecialchars($csrf) ?>">
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="id"     value="<?= (int)$p['id'] ?>">
+                <button class="btn btn-sm btn-outline-danger" type="submit">Borrar</button>
+              </form>
+            </td>
+          </tr>
+        <?php endforeach; endif; ?>
+        </tbody>
+      </table>
+    </div>
+
+    <?php if ($totalPages > 1): ?>
+      <nav class="mt-3">
+        <ul class="pagination pagination-sm mb-0">
+          <?php
+            $prevDisabled = $page <= 1 ? ' disabled' : '';
+            $nextDisabled = $page >= $totalPages ? ' disabled' : '';
+          ?>
+          <li class="page-item<?= $prevDisabled ?>">
+            <a class="page-link" href="?<?= htmlspecialchars(build_qs(['page' => $page - 1])) ?>">«</a>
+          </li>
+
+          <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+            <?php $active = ($i === $page) ? ' active' : ''; ?>
+            <li class="page-item<?= $active ?>">
+              <a class="page-link" href="?<?= htmlspecialchars(build_qs(['page' => $i])) ?>"><?= $i ?></a>
+            </li>
+          <?php endfor; ?>
+
+          <li class="page-item<?= $nextDisabled ?>">
+            <a class="page-link" href="?<?= htmlspecialchars(build_qs(['page' => $page + 1])) ?>">»</a>
+          </li>
+        </ul>
+      </nav>
     <?php endif; ?>
-  </form>
-
-  <?php
-  $from = $totalRows ? ($offset + 1) : 0;
-  $to   = $offset + count($productos);
-  ?>
-  <p class="text-muted small mb-2">
-    Mostrando <?= $from ?>–<?= $to ?> de <?= $totalRows ?> resultado<?= $totalRows===1?'':'s' ?>.
-  </p>
-
-  <div class="card shadow-sm">
-    <div class="card-body">
-      <div class="table-responsive">
-        <table class="table table-striped table-hover align-middle mb-0">
-          <thead class="table-light">
-            <tr>
-              <th style="width:80px">ID</th>
-              <th style="width:64px">Imagen</th>
-              <th>Nombre</th>
-              <th class="text-end" style="width:140px">Precio</th>
-              <th style="width:120px">Estado</th>
-              <th class="text-end" style="width:260px">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-          <?php if (!$productos): ?>
-            <tr><td colspan="6" class="text-center text-muted py-4">No hay productos</td></tr>
-          <?php else: foreach ($productos as $p): ?>
-            <tr>
-              <td><?= (int)$p['id'] ?></td>
-              <td><img class="thumb-sm" src="<?= image_url($p) ?>" alt=""></td>
-              <td><?= htmlspecialchars($p['name']) ?></td>
-              <td class="text-end">€ <?= number_format((float)$p['price'], 2, ',', '.') ?></td>
-              <td>
-                <?php if ((int)$p['is_active'] === 1): ?>
-                  <span class="badge bg-success-subtle border border-success-subtle text-success-emphasis rounded-pill">Activo</span>
-                <?php else: ?>
-                  <span class="badge bg-secondary-subtle border border-secondary-subtle text-secondary-emphasis rounded-pill">Inactivo</span>
-                <?php endif; ?>
-              </td>
-              <td class="text-end">
-                <a class="btn btn-sm btn-outline-primary" href="<?= BASE_URL ?>/admin/producto_form.php?id=<?= (int)$p['id'] ?>">Editar</a>
-
-                <form action="" method="post" class="d-inline" onsubmit="return confirm('¿Cambiar estado de este producto?');">
-                  <input type="hidden" name="action" value="toggle">
-                  <input type="hidden" name="id"     value="<?= (int)$p['id'] ?>">
-                  <button class="btn btn-sm btn-outline-warning" type="submit">
-                    <?= (int)$p['is_active']===1 ? 'Desactivar' : 'Activar' ?>
-                  </button>
-                </form>
-
-                <form action="" method="post" class="d-inline" onsubmit="return confirm('¿Inactivar este producto?');">
-                  <input type="hidden" name="action" value="delete">
-                  <input type="hidden" name="id"     value="<?= (int)$p['id'] ?>">
-                  <button class="btn btn-sm btn-outline-danger" type="submit">Borrar</button>
-                </form>
-              </td>
-            </tr>
-          <?php endforeach; endif; ?>
-          </tbody>
-        </table>
-      </div>
-
-      <?php if ($totalPages > 1): ?>
-        <nav class="mt-3">
-          <ul class="pagination pagination-sm mb-0">
-            <?php
-              $prevDisabled = $page <= 1 ? ' disabled' : '';
-              $nextDisabled = $page >= $totalPages ? ' disabled' : '';
-            ?>
-            <li class="page-item<?= $prevDisabled ?>">
-              <a class="page-link" href="?<?= htmlspecialchars(build_qs(['page' => $page - 1])) ?>">«</a>
-            </li>
-
-            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-              <?php $active = ($i === $page) ? ' active' : ''; ?>
-              <li class="page-item<?= $active ?>">
-                <a class="page-link" href="?<?= htmlspecialchars(build_qs(['page' => $i])) ?>"><?= $i ?></a>
-              </li>
-            <?php endfor; ?>
-
-            <li class="page-item<?= $nextDisabled ?>">
-              <a class="page-link" href="?<?= htmlspecialchars(build_qs(['page' => $page + 1])) ?>">»</a>
-            </li>
-          </ul>
-        </nav>
-      <?php endif; ?>
-    </div>
   </div>
-</main>
+</div>
 
 <?php include __DIR__ . '/../templates/footer.php'; ?>

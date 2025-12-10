@@ -1,5 +1,5 @@
 <?php
-// public/producto.php — Ficha con rating visual + guía de tallas (modal) + stock
+// public/producto.php — Ficha con rating visual + stock
 require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../config/db.php';
@@ -14,7 +14,7 @@ if ($id <= 0) { http_response_code(404); include __DIR__ . '/404.php'; exit; }
 $pdo = getConnection();
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-$stmt = $pdo->prepare("SELECT id, name, description, price, image, is_active FROM products WHERE id = ? LIMIT 1");
+$stmt = $pdo->prepare("SELECT id, name, description, price, image, is_active, stock FROM products WHERE id = ? LIMIT 1");
 $stmt->execute([$id]);
 $prod = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$prod || (int)$prod['is_active'] !== 1) { http_response_code(404); include __DIR__ . '/404.php'; exit; }
@@ -23,73 +23,123 @@ $PAGE_TITLE = $prod['name'] ?: 'Producto';
 $user = auth_user();
 
 /* ---------- Helpers imágenes ---------- */
-function base_url(): string { return rtrim(defined('BASE_URL') ? BASE_URL : '/shopping', '/'); }
+// Ojo: usamos prod_base_url() para no chocar con base_url() de header.php
+function prod_base_url(): string {
+  return rtrim(defined('BASE_URL') ? BASE_URL : '/shopping', '/');
+}
+
 function image_url_if_exists(string $fname): ?string {
-  $fname = trim($fname); if ($fname==='') return null;
-  $base = base_url();
-  foreach ([[__DIR__."/../uploads/$fname","$base/uploads/$fname"], [__DIR__."/../images/$fname","$base/images/$fname"]] as [$fs,$url]) {
+  $fname = trim($fname);
+  if ($fname === '') return null;
+
+  $base = prod_base_url();
+
+  $candidatos = [
+    [__DIR__ . "/../uploads/$fname", "$base/uploads/$fname"],
+    [__DIR__ . "/../images/$fname",  "$base/images/$fname"],
+  ];
+
+  foreach ($candidatos as [$fs, $url]) {
     if (is_file($fs)) return $url;
   }
   return null;
 }
+
 function product_image_url(array $row): string {
-  return image_url_if_exists((string)($row['image'] ?? '')) ?: (base_url().'/images/placeholder.jpg');
+  $url = image_url_if_exists((string)($row['image'] ?? ''));
+  return $url ?: (prod_base_url() . '/images/placeholder.jpg');
 }
+
 /** Galería: DB + variantes + relleno min. 3 */
 function product_images(PDO $pdo, array $prod): array {
-  $MIN = 3; $images = [];
+  $MIN = 3;
+  $images = [];
+
   try {
-    $q=$pdo->prepare("SELECT filename FROM product_images WHERE product_id=? ORDER BY sort_order,id");
+    $q = $pdo->prepare("SELECT filename FROM product_images WHERE product_id=? ORDER BY sort_order,id");
     $q->execute([(int)$prod['id']]);
-    foreach ($q->fetchAll(PDO::FETCH_COLUMN) as $fn) if ($u=image_url_if_exists($fn)) $images[]=$u;
-  } catch(Throwable $e){}
+    foreach ($q->fetchAll(PDO::FETCH_COLUMN) as $fn) {
+      if ($u = image_url_if_exists($fn)) $images[] = $u;
+    }
+  } catch (Throwable $e) {
+    // ignoramos si no existe la tabla
+  }
+
   $main = trim((string)($prod['image'] ?? ''));
-  if ($main!=='') {
-    if (!$images && ($u=image_url_if_exists($main))) $images[]=$u;
-    if (count($images)<=1) {
-      $pi=pathinfo($main); $name=$pi['filename']??''; $ext=isset($pi['extension'])?('.'.$pi['extension']):'';
-      $set=array_flip($images);
-      for($i=2;$i<=6;$i++){
-        foreach (["{$name}-{$i}{$ext}", "{$name}_{$i}{$ext}"] as $cand)
-          if ($u=image_url_if_exists($cand)) if(!isset($set[$u])){$images[]=$u;$set[$u]=true;}
+  if ($main !== '') {
+    if (!$images && ($u = image_url_if_exists($main))) {
+      $images[] = $u;
+    }
+    if (count($images) <= 1) {
+      $pi   = pathinfo($main);
+      $name = $pi['filename'] ?? '';
+      $ext  = isset($pi['extension']) ? ('.' . $pi['extension']) : '';
+      $set  = array_flip($images);
+
+      for ($i = 2; $i <= 6; $i++) {
+        foreach (["{$name}-{$i}{$ext}", "{$name}_{$i}{$ext}"] as $cand) {
+          if ($u = image_url_if_exists($cand)) {
+            if (!isset($set[$u])) {
+              $images[] = $u;
+              $set[$u]  = true;
+            }
+          }
+        }
       }
     }
   }
-  if(!$images) $images[] = base_url().'/images/placeholder.jpg';
-  while(count($images)<$MIN) $images[]=$images[0];
-  return array_slice($images,0,10);
+
+  if (!$images) {
+    $images[] = prod_base_url() . '/images/placeholder.jpg';
+  }
+
+  while (count($images) < $MIN) {
+    $images[] = $images[0];
+  }
+
+  return array_slice($images, 0, 10);
 }
 
 /* ---------- Valoraciones (solo visual) ---------- */
 function product_rating_summary(PDO $pdo, int $pid): array {
   try {
-    $st=$pdo->prepare("SELECT COUNT(*) cnt, AVG(rating) avg_rating FROM product_reviews WHERE product_id=? AND is_approved=1");
-    $st->execute([$pid]); $r=$st->fetch(PDO::FETCH_ASSOC);
-    return ['count'=>(int)($r['cnt']??0),'avg'=> $r['avg_rating']? round((float)$r['avg_rating'],1):0.0];
-  } catch(Throwable $e){ return ['count'=>0,'avg'=>0.0]; }
+    $st = $pdo->prepare("SELECT COUNT(*) cnt, AVG(rating) avg_rating FROM product_reviews WHERE product_id=? AND is_approved=1");
+    $st->execute([$pid]);
+    $r = $st->fetch(PDO::FETCH_ASSOC);
+    return [
+      'count' => (int)($r['cnt'] ?? 0),
+      'avg'   => $r['avg_rating'] ? round((float)$r['avg_rating'], 1) : 0.0
+    ];
+  } catch (Throwable $e) {
+    return ['count' => 0, 'avg' => 0.0];
+  }
 }
 
-/* ---------- Stock (suma product_sizes.stock) ---------- */
-function product_stock_summary(PDO $pdo, int $pid): array {
-  try {
-    $st=$pdo->prepare("SELECT COALESCE(SUM(stock),0) total FROM product_sizes WHERE product_id=?");
-    $st->execute([$pid]); $total=(int)($st->fetchColumn() ?: 0);
-  } catch(Throwable $e){ $total = -1; } // si no existe la tabla
-  if ($total < 0) return ['label'=>'Disponible','variant'=>'success']; // fallback sin tabla
-  if ($total === 0) return ['label'=>'Agotado','variant'=>'danger'];
-  if ($total <= 10) return ['label'=>'Últimas unidades','variant'=>'warning'];
-  return ['label'=>'En stock','variant'=>'success'];
+/* ---------- Stock (usa products.stock) ---------- */
+function product_stock_summary(int $total): array {
+  // $total = stock actual del producto (columna products.stock)
+  if ($total <= 0)  return ['label' => 'Agotado',          'variant' => 'danger'];
+  if ($total <= 10) return ['label' => 'Últimas unidades', 'variant' => 'warning'];
+  return ['label' => 'En stock', 'variant' => 'success'];
 }
+
 
 function related_products(PDO $pdo, int $excludeId, int $limit = 8): array {
-  $st=$pdo->prepare("SELECT id,name,price,image FROM products WHERE is_active=1 AND id<>? ORDER BY RAND() LIMIT ".(int)$limit);
-  $st->execute([$excludeId]); return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+  $st = $pdo->prepare("
+    SELECT id, name, price, image
+    FROM products
+    WHERE is_active = 1 AND id <> ?
+    ORDER BY RAND()
+    LIMIT " . (int)$limit
+  );
+  $st->execute([$excludeId]);
+  return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
 }
-
 $gallery = product_images($pdo, $prod);
 $summary = product_rating_summary($pdo, (int)$prod['id']);
-$stock   = product_stock_summary($pdo, (int)$prod['id']);
+$stock   = product_stock_summary((int)($prod['stock'] ?? 0));
 $related = related_products($pdo, (int)$prod['id'], 8);
+
 
 include __DIR__ . '/../templates/header.php';
 ?>
@@ -103,7 +153,7 @@ include __DIR__ . '/../templates/header.php';
           <div id="prodGallery" class="carousel slide product-gallery border border-2 border-primary-subtle rounded-4" data-bs-ride="false">
             <div class="carousel-inner">
               <?php foreach ($gallery as $idx => $url): ?>
-                <div class="carousel-item<?= $idx===0 ? ' active':'' ?>">
+                <div class="carousel-item<?= $idx === 0 ? ' active' : '' ?>">
                   <div class="product-media">
                     <img src="<?= htmlspecialchars($url) ?>" class="d-block w-100 product-img" alt="<?= htmlspecialchars($prod['name']) ?>" loading="lazy">
                   </div>
@@ -125,8 +175,8 @@ include __DIR__ . '/../templates/header.php';
             <div class="row g-2">
               <?php foreach ($gallery as $i => $url): ?>
                 <div class="col-3 col-sm-2">
-                  <button type="button" class="thumb <?= $i===0 ? 'active':'' ?> border border-primary-subtle" data-bs-target="#prodGallery" data-bs-slide-to="<?= $i ?>">
-                    <img src="<?= htmlspecialchars($url) ?>" alt="Vista <?= $i+1 ?>" loading="lazy">
+                  <button type="button" class="thumb <?= $i === 0 ? 'active' : '' ?> border border-primary-subtle" data-bs-target="#prodGallery" data-bs-slide-to="<?= $i ?>">
+                    <img src="<?= htmlspecialchars($url) ?>" alt="Vista <?= $i + 1 ?>" loading="lazy">
                   </button>
                 </div>
               <?php endforeach; ?>
@@ -139,22 +189,28 @@ include __DIR__ . '/../templates/header.php';
         <div class="col-md-6">
           <h1 class="h3 mb-1"><?= htmlspecialchars($prod['name']) ?></h1>
 
-          <div class="h4 mb-2 text-primary fw-bold">€ <?= number_format((float)$prod['price'],2,',','.') ?></div>
+          <div class="h4 mb-2 text-primary fw-bold">€ <?= number_format((float)$prod['price'], 2, ',', '.') ?></div>
 
           <!-- Rating debajo del precio -->
           <div class="d-flex align-items-center gap-2 mb-2">
-            <?php $full=floor($summary['avg']); $half = ($summary['avg']-$full)>=0.5?1:0; $empty=5-$full-$half; ?>
+            <?php
+              $full  = floor($summary['avg']);
+              $half  = ($summary['avg'] - $full) >= 0.5 ? 1 : 0;
+              $empty = 5 - $full - $half;
+            ?>
             <div class="rating-stars" aria-label="Valoración media: <?= $summary['avg'] ?> de 5">
-              <?php for($i=0;$i<$full;$i++): ?><span class="star star-full">★</span><?php endfor; ?>
-              <?php if($half): ?><span class="star star-half">★</span><?php endif; ?>
-              <?php for($i=0;$i<$empty;$i++): ?><span class="star star-empty">☆</span><?php endfor; ?>
+              <?php for ($i = 0; $i < $full; $i++): ?><span class="star star-full">★</span><?php endfor; ?>
+              <?php if ($half): ?><span class="star star-half">★</span><?php endif; ?>
+              <?php for ($i = 0; $i < $empty; $i++): ?><span class="star star-empty">☆</span><?php endfor; ?>
             </div>
             <small class="text-muted">(<?= $summary['avg'] ?> · <?= (int)$summary['count'] ?> reseñas)</small>
           </div>
 
           <!-- Stock / disponibilidad -->
           <div class="mb-3">
-            <span class="badge text-bg-<?= $stock['variant'] ?> px-3 py-2"><?= htmlspecialchars($stock['label']) ?></span>
+            <span class="badge text-bg-<?= $stock['variant'] ?> px-3 py-2">
+              <?= htmlspecialchars($stock['label']) ?>
+            </span>
           </div>
 
           <?php if (!empty($prod['description'])): ?>
@@ -169,7 +225,6 @@ include __DIR__ . '/../templates/header.php';
               Añadir al carrito
             </a>
             <a class="btn btn-outline-secondary" href="<?= $BASE ?>/public/catalogo.php">Volver al catálogo</a>
-            <button class="btn btn-outline-dark" data-bs-toggle="modal" data-bs-target="#sizeGuideModal">Guía de tallas</button>
 
             <!-- Favoritos -->
             <button id="favBtn" class="btn btn-outline-primary ms-lg-2" type="button" aria-pressed="false">
@@ -223,37 +278,6 @@ include __DIR__ . '/../templates/header.php';
   </div>
 </section>
 <?php endif; ?>
-
-<!-- Modal Guía de tallas -->
-<div class="modal fade" id="sizeGuideModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Guía de tallas</h5>
-        <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-      <div class="modal-body">
-        <p class="mb-2 text-muted">Medidas orientativas (cm). Pueden variar según el modelo.</p>
-        <div class="table-responsive">
-          <table class="table table-sm align-middle">
-            <thead><tr><th>Talla</th><th>Pecho</th><th>Cintura</th><th>Cadera</th></tr></thead>
-            <tbody>
-              <tr><td>XS</td><td>84–88</td><td>70–74</td><td>86–90</td></tr>
-              <tr><td>S</td><td>88–92</td><td>74–78</td><td>90–94</td></tr>
-              <tr><td>M</td><td>92–100</td><td>78–86</td><td>94–102</td></tr>
-              <tr><td>L</td><td>100–108</td><td>86–94</td><td>102–110</td></tr>
-              <tr><td>XL</td><td>108–116</td><td>94–102</td><td>110–118</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <small class="text-muted">Consejo: si dudas entre dos tallas, elige la mayor.</small>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <script>
   // Favoritos (localStorage)

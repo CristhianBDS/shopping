@@ -65,7 +65,18 @@ $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
 (function(){
   const BASE = <?= json_encode($BASE) ?>;
 
-  function getCartItems(){ try { return JSON.parse(localStorage.getItem('cart') || '[]'); } catch { return []; } }
+  function notify(message, type, title) {
+    if (typeof window.showToast === 'function') {
+      window.showToast(message, type || 'info', title || null);
+    } else {
+      alert(message);
+    }
+  }
+
+  function getCartItems(){
+    try { return JSON.parse(localStorage.getItem('cart') || '[]'); }
+    catch { return []; }
+  }
 
   function normalizeItems(items){
     return items.map(it => ({
@@ -82,7 +93,7 @@ $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
 
     const items = normalizeItems(getCartItems());
     if (!items.length){
-      alert('Tu carrito está vacío.');
+      notify('Tu carrito está vacío.', 'info', 'Carrito');
       window.location.href = BASE + '/public/carrito.php';
       return;
     }
@@ -100,7 +111,7 @@ $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
     };
 
     if (!payload.name || !payload.email || !payload.address){
-      alert('Por favor completa nombre, email y dirección.');
+      notify('Por favor completa nombre, email y dirección.', 'warning', 'Datos incompletos');
       return;
     }
 
@@ -124,11 +135,15 @@ $BASE = defined('BASE_URL') ? BASE_URL : '/shopping';
       }
 
       localStorage.removeItem('cart');
-      window.location.href = BASE + '/public/gracias.php?order=' + encodeURIComponent(String(data.order_id));
+      notify('Pedido registrado correctamente. Nº ' + data.order_id, 'success', 'Pedido creado');
+
+      setTimeout(() => {
+        window.location.href = BASE + '/public/gracias.php?order=' + encodeURIComponent(String(data.order_id));
+      }, 900);
 
     } catch (err) {
       console.error(err);
-      alert('Ocurrió un error al confirmar el pedido. Intenta nuevamente en unos segundos.');
+      notify(err.message || 'Ocurrió un error al confirmar el pedido. Intenta nuevamente en unos segundos.', 'error', 'Error');
     }
   });
 })();
